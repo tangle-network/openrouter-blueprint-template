@@ -6,9 +6,10 @@
 use blueprint_sdk::extract::Context;
 use blueprint_sdk::tangle::extract::{TangleArg, TangleResult};
 use tracing::{debug, info, warn};
+use std::sync::Arc;
 
 use crate::context::OpenRouterContext;
-use crate::llm::{LlmRequest, LlmResponse};
+use crate::llm::{LlmClient, LlmRequest, LlmResponse, StreamingLlmClient};
 
 /// Job ID for processing LLM requests
 pub const PROCESS_LLM_REQUEST_JOB_ID: u32 = 0;
@@ -19,45 +20,125 @@ pub const REPORT_METRICS_JOB_ID: u32 = 1;
 /// Process an LLM request
 ///
 /// This job handler receives an LLM request from Tangle, processes it
-/// through the local LLM, and returns the response.
+/// through the selected LLM node, and returns the response.
 ///
 /// # ASCII Diagram
 /// ```
-/// User -> OpenRouter -> Tangle -> Blueprint -> Local LLM
+/// User -> OpenRouter -> Tangle -> Blueprint -> Load Balancer -> LLM Node
 ///                                    |
 ///                                    v
-/// User <- OpenRouter <- Tangle <- Blueprint <- Local LLM
+/// User <- OpenRouter <- Tangle <- Blueprint <- LLM Node
 /// ```
 ///
 /// # Expected Outcome
-/// The request is processed by the local LLM and the response is returned to Tangle.
-#[blueprint_sdk::debug_job]
+/// The request is processed by the selected LLM node and the response is returned to Tangle.
 pub async fn process_llm_request(
     Context(ctx): Context<OpenRouterContext>,
     TangleArg(request): TangleArg<LlmRequest>,
-) -> blueprint_sdk::Result<TangleResult<LlmResponse>> {
+) -> Result<TangleResult<LlmResponse>, blueprint_sdk::Error> {
     info!("Processing LLM request");
     
+    // Get the model name from the request
+    let model = match &request {
+        LlmRequest::ChatCompletion(req) => &req.model,
+        LlmRequest::TextCompletion(req) => &req.model,
+        LlmRequest::Embedding(req) => &req.model,
+    };
+    
+    // Select an LLM client for this model using the load balancer
+    let llm_client = match ctx.get_llm_client_for_model(model).await {
+        Some(client) => client,
+        None => {
+            // Fall back to the default client if no suitable node is found
+            warn!("No suitable LLM node found for model {}, using default client", model);
+            ctx.llm_client.clone()
+        }
+    };
+    
+    // Check if streaming is requested
+    let streaming = match &request {
+        LlmRequest::ChatCompletion(req) => req.stream.unwrap_or(false),
+        LlmRequest::TextCompletion(req) => req.stream.unwrap_or(false),
+        LlmRequest::Embedding(_) => false,
+    };
+    
     // Process the request based on its type
-    let response = match request {
-        LlmRequest::ChatCompletion(req) => {
-            debug!("Processing chat completion request for model: {}", req.model);
-            let chat_response = ctx.llm_client.chat_completion(req).await
-                .map_err(|e| blueprint_sdk::Error::Custom(e.to_string()))?;
-            LlmResponse::ChatCompletion(chat_response)
-        },
-        LlmRequest::TextCompletion(req) => {
-            debug!("Processing text completion request for model: {}", req.model);
-            let text_response = ctx.llm_client.text_completion(req).await
-                .map_err(|e| blueprint_sdk::Error::Custom(e.to_string()))?;
-            LlmResponse::TextCompletion(text_response)
-        },
-        LlmRequest::Embedding(req) => {
-            debug!("Processing embedding request for model: {}", req.model);
-            let embedding_response = ctx.llm_client.embeddings(req).await
-                .map_err(|e| blueprint_sdk::Error::Custom(e.to_string()))?;
-            LlmResponse::Embedding(embedding_response)
-        },
+    let response = if streaming {
+        // Handle streaming requests if the client supports it
+        match request {
+            LlmRequest::ChatCompletion(req) => {
+                debug!("Processing streaming chat completion request for model: {}", req.model);
+                
+                // Try to cast the client to a StreamingLlmClient
+                if let Some(streaming_client) = llm_client.clone().downcast_arc::<dyn StreamingLlmClient>() {
+                    // Use the streaming client
+                    let stream = streaming_client.streaming_chat_completion(req).await
+                        .map_err(|e| blueprint_sdk::Error::Other(e.to_string()))?;
+                    
+                    // Collect the stream into a single response
+                    let chat_response = crate::llm::collect_chat_completion_stream(stream).await
+                        .map_err(|e| blueprint_sdk::Error::Other(e.to_string()))?;
+                    
+                    LlmResponse::ChatCompletion(chat_response)
+                } else {
+                    // Fall back to non-streaming if the client doesn't support streaming
+                    warn!("Selected LLM client doesn't support streaming, falling back to non-streaming");
+                    let chat_response = llm_client.chat_completion(req).await
+                        .map_err(|e| blueprint_sdk::Error::Other(e.to_string()))?;
+                    LlmResponse::ChatCompletion(chat_response)
+                }
+            },
+            LlmRequest::TextCompletion(req) => {
+                debug!("Processing streaming text completion request for model: {}", req.model);
+                
+                // Try to cast the client to a StreamingLlmClient
+                if let Some(streaming_client) = llm_client.clone().downcast_arc::<dyn StreamingLlmClient>() {
+                    // Use the streaming client
+                    let stream = streaming_client.streaming_text_completion(req).await
+                        .map_err(|e| blueprint_sdk::Error::Other(e.to_string()))?;
+                    
+                    // Collect the stream into a single response
+                    let text_response = crate::llm::collect_text_completion_stream(stream).await
+                        .map_err(|e| blueprint_sdk::Error::Other(e.to_string()))?;
+                    
+                    LlmResponse::TextCompletion(text_response)
+                } else {
+                    // Fall back to non-streaming if the client doesn't support streaming
+                    warn!("Selected LLM client doesn't support streaming, falling back to non-streaming");
+                    let text_response = llm_client.text_completion(req).await
+                        .map_err(|e| blueprint_sdk::Error::Other(e.to_string()))?;
+                    LlmResponse::TextCompletion(text_response)
+                }
+            },
+            LlmRequest::Embedding(req) => {
+                debug!("Processing embedding request for model: {}", req.model);
+                let embedding_response = llm_client.embeddings(req).await
+                    .map_err(|e| blueprint_sdk::Error::Other(e.to_string()))?;
+                LlmResponse::Embedding(embedding_response)
+            },
+        }
+    } else {
+        // Handle non-streaming requests
+        match request {
+            LlmRequest::ChatCompletion(req) => {
+                debug!("Processing chat completion request for model: {}", req.model);
+                let chat_response = llm_client.chat_completion(req).await
+                    .map_err(|e| blueprint_sdk::Error::Other(e.to_string()))?;
+                LlmResponse::ChatCompletion(chat_response)
+            },
+            LlmRequest::TextCompletion(req) => {
+                debug!("Processing text completion request for model: {}", req.model);
+                let text_response = llm_client.text_completion(req).await
+                    .map_err(|e| blueprint_sdk::Error::Other(e.to_string()))?;
+                LlmResponse::TextCompletion(text_response)
+            },
+            LlmRequest::Embedding(req) => {
+                debug!("Processing embedding request for model: {}", req.model);
+                let embedding_response = llm_client.embeddings(req).await
+                    .map_err(|e| blueprint_sdk::Error::Other(e.to_string()))?;
+                LlmResponse::Embedding(embedding_response)
+            },
+        }
     };
     
     // Update metrics after processing the request
@@ -82,10 +163,9 @@ pub async fn process_llm_request(
 ///
 /// # Expected Outcome
 /// The current metrics for this node are reported back to Tangle.
-#[blueprint_sdk::debug_job]
 pub async fn report_metrics(
     Context(ctx): Context<OpenRouterContext>,
-) -> blueprint_sdk::Result<TangleResult<crate::llm::NodeMetrics>> {
+) -> Result<TangleResult<crate::llm::NodeMetrics>, blueprint_sdk::Error> {
     info!("Reporting metrics");
     
     // Update metrics before reporting

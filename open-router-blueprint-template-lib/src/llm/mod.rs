@@ -4,7 +4,6 @@
 //! locally hosted LLMs through the Tangle network.
 
 use std::collections::HashMap;
-use std::sync::Arc;
 use std::time::Duration;
 
 use async_trait::async_trait;
@@ -16,6 +15,9 @@ pub use models::*;
 
 mod local_llm;
 pub use local_llm::*;
+
+mod streaming;
+pub use streaming::*;
 
 /// Errors that can occur when interacting with an LLM
 #[derive(Debug, Error)]
@@ -42,7 +44,7 @@ pub enum LlmError {
 /// Result type for LLM operations
 pub type Result<T> = std::result::Result<T, LlmError>;
 
-/// Trait defining the interface for LLM clients
+/// Trait for LLM clients
 #[async_trait]
 pub trait LlmClient: Send + Sync {
     /// Get information about the supported models

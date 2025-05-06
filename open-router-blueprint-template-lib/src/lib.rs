@@ -7,10 +7,12 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 pub mod llm;
 pub mod context;
 pub mod jobs;
+pub mod load_balancer;
 
 // Re-export key types and functions
 pub use context::OpenRouterContext;
 pub use jobs::{PROCESS_LLM_REQUEST_JOB_ID, REPORT_METRICS_JOB_ID, process_llm_request, report_metrics};
+pub use load_balancer::{LoadBalancer, LoadBalancerConfig, LoadBalancingStrategy};
 
 // The job ID (to be generated?)
 pub const SAY_HELLO_JOB_ID: u32 = 0;

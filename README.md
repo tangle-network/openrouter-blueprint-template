@@ -1,110 +1,101 @@
-# <h1 align="center">OpenRouter Blueprint Template for Tangle 🌐</h1>
+# OpenRouter Blueprint Template
 
-## 📚 Overview
+A Tangle Blueprint template for creating OpenRouter providers that can balance requests across locally hosted LLMs.
 
-This Tangle Blueprint provides a template for creating an OpenRouter provider that can support any locally hosted LLM. It enables Tangle to act as a load balancer for multiple LLM instances, allowing operators to participate in the network by running LLM nodes.
+## Overview
 
-Blueprints are specifications for <abbr title="Actively Validated Services">AVS</abbr>s on the Tangle Network. An AVS is an off-chain service that runs arbitrary computations for a user-specified period of time.
+This template provides a framework for creating LLM providers on OpenRouter that can balance requests across locally hosted LLMs. It is designed to be completely general and not tied to any specific LLM implementation, allowing you to create blueprints for any local LLM.
 
-This blueprint template allows Tangle to serve as a provider on OpenRouter, balancing requests across locally hosted LLMs running on blueprints for people accessing the models through Tangle.
+The template includes:
 
-For more details, please refer to the [project documentation](https://docs.tangle.tools/developers/blueprints/introduction).
+- Generic interfaces for interacting with LLMs
+- Load balancing across multiple LLM nodes
+- Streaming support for efficient handling of large responses
+- Metrics collection for informed load balancing decisions
 
-## 🚀 Features
+## Architecture
 
-- Standardized interface for local LLMs to connect to Tangle
-- Support for chat completions, text completions, and embeddings
-- Metrics reporting for load balancing
-- Compatible with OpenAI/OpenRouter API formats
-- Extensible design to support various LLM frameworks
+The OpenRouter Blueprint template follows a modular architecture:
 
-## 📋 Prerequisites
+- **LLM Interface**: Defines standard interfaces and data models for interacting with LLMs
+- **Load Balancer**: Distributes requests across multiple LLM nodes based on various strategies
+- **Context**: Manages shared state and provides access to LLM clients
+- **Job Handlers**: Process requests from Tangle and return responses
 
-Before you can run this project, you will need to have the following software installed on your machine:
+## Getting Started
 
-- [Rust](https://www.rust-lang.org/tools/install)
-- [Forge](https://getfoundry.sh)
+### Prerequisites
 
-You will also need to install [cargo-tangle](https://crates.io/crates/cargo-tangle), our CLI tool for creating and
-deploying Tangle Blueprints:
+- Rust toolchain (1.60+)
+- Tangle network access
 
-To install the Tangle CLI, run the following command:
-
-> Supported on Linux, MacOS, and Windows (WSL2)
+### Building
 
 ```bash
-cargo install cargo-tangle --git https://github.com/tangle-network/blueprint
+cargo build --release
 ```
 
-## ⭐ Getting Started
+### Running
 
-Once `cargo-tangle` is installed, you can create a new project with the following command:
-
-```sh
-cargo tangle blueprint create --name <project-name>
+```bash
+cargo run --release
 ```
 
-and follow the instructions to create a new project.
+## Extending the Template
 
-## 🛠️ Development
+This template is designed to be extended for specific LLM implementations. Here's how to create a blueprint for your specific LLM:
 
-### Project Structure
+1. **Create a new blueprint** based on this template
+2. **Implement the LLM client** by implementing the `LlmClient` trait for your specific LLM
+3. **Add streaming support** by implementing the `StreamingLlmClient` trait (optional)
+4. **Update the context** to initialize your LLM client
+5. **Configure the load balancer** to use your preferred strategy
 
-The blueprint follows the standard Tangle Blueprint structure:
+### Example: Implementing a Custom LLM Client
 
-- `open-router-blueprint-template-bin/`: Binary crate for initializing the blueprint
-- `open-router-blueprint-template-lib/`: Library crate containing the core logic
-  - `src/llm/`: LLM interface abstraction and implementations
-  - `src/context.rs`: Context structure for the blueprint
-  - `src/jobs.rs`: Job handlers for processing LLM requests
+```rust
+use async_trait::async_trait;
+use open_router_blueprint_template_lib::llm::{LlmClient, Result, ChatCompletionRequest, ChatCompletionResponse, /* ... */};
 
-### Building and Testing
+pub struct MyCustomLlmClient {
+    // Your client-specific fields
+}
 
-To build the project:
+#[async_trait]
+impl LlmClient for MyCustomLlmClient {
+    fn get_supported_models(&self) -> Vec<ModelInfo> {
+        // Return the models supported by your LLM
+    }
 
-```sh
-cargo build
+    fn get_capabilities(&self) -> LlmCapabilities {
+        // Return the capabilities of your LLM
+    }
+
+    fn get_metrics(&self) -> NodeMetrics {
+        // Return metrics for your LLM
+    }
+
+    async fn chat_completion(&self, request: ChatCompletionRequest) -> Result<ChatCompletionResponse> {
+        // Implement chat completion for your LLM
+    }
+
+    // Implement other required methods...
+}
 ```
 
-To run the tests:
+## Load Balancing Strategies
 
-```sh
-cargo test
-```
+The template supports several load balancing strategies:
 
-### Deployment
+- **RoundRobin**: Distributes requests evenly across all nodes
+- **LeastLoaded**: Routes requests to the node with the fewest active requests
+- **CapabilityBased**: Selects nodes based on their capabilities for specific models
+- **LatencyBased**: Routes requests to the node with the lowest response time
 
-To deploy the blueprint to the Tangle network:
+## Configuration
 
-```sh
-cargo tangle blueprint deploy
-```
+The template can be configured through environment variables or a configuration file. See the [Configuration Guide](docs/configuration.md) for more details.
 
-### Customizing for Your LLM
+## License
 
-To customize this blueprint for your specific LLM implementation:
-
-1. Create a new implementation of the `LlmClient` trait in `src/llm/`
-2. Update the context initialization in `src/context.rs` to use your implementation
-3. Modify the configuration as needed for your LLM
-
-## 📜 License
-
-Licensed under either of
-
-* Apache License, Version 2.0
-  ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
-* MIT license
-  ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
-
-at your option.
-
-## 📬 Feedback and Contributions
-
-We welcome feedback and contributions to improve this blueprint.
-Please open an issue or submit a pull request on our GitHub repository.
-Please let us know if you fork this blueprint and extend it too!
-
-Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
-dual licensed as above, without any additional terms or conditions.
+This project is licensed under the [MIT License](LICENSE).
