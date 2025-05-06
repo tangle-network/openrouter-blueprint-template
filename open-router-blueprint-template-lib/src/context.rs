@@ -11,6 +11,7 @@ use tracing::info;
 
 use crate::llm::{LlmClient, LocalLlmClient, LocalLlmConfig, NodeMetrics};
 use crate::load_balancer::{LoadBalancer, LoadBalancerConfig, LoadBalancingStrategy};
+use crate::config::BlueprintConfig;
 
 /// Context for the OpenRouter Blueprint
 #[derive(Clone)]
@@ -29,25 +30,61 @@ pub struct OpenRouterContext {
     
     /// Load balancer for distributing requests across multiple LLM nodes
     pub load_balancer: Arc<LoadBalancer>,
+    
+    /// Blueprint configuration
+    pub blueprint_config: Arc<RwLock<BlueprintConfig>>,
 }
 
 impl OpenRouterContext {
     /// Create a new OpenRouter context
     pub async fn new(env: BlueprintEnvironment) -> Result<Self, blueprint_sdk::Error> {
-        // Create a default configuration
-        let config = LocalLlmConfig::default();
+        // Load configuration
+        let blueprint_config = match env.config_path.as_ref() {
+            Some(path) => {
+                info!("Loading configuration from {}", path.display());
+                match BlueprintConfig::load(path) {
+                    Ok(config) => {
+                        info!("Configuration loaded successfully");
+                        config
+                    },
+                    Err(e) => {
+                        info!("Failed to load configuration: {}, using default", e);
+                        BlueprintConfig::from_env()
+                    }
+                }
+            },
+            None => {
+                info!("No configuration file specified, using environment variables");
+                BlueprintConfig::from_env()
+            }
+        };
+        
+        // Validate the configuration
+        if let Err(e) = blueprint_config.validate() {
+            info!("Configuration validation failed: {}, using default", e);
+            // Continue with default configuration
+        }
+        
+        // Create a local LLM config from the blueprint config
+        let local_config = LocalLlmConfig {
+            api_url: blueprint_config.llm.api_url.clone(),
+            timeout_seconds: blueprint_config.llm.timeout_seconds,
+            max_concurrent_requests: blueprint_config.llm.max_concurrent_requests,
+            models: blueprint_config.llm.models.clone(),
+            additional_params: blueprint_config.llm.additional_params.clone(),
+        };
         
         // Create the default LLM client
-        let llm_client = Arc::new(LocalLlmClient::new(config.clone()));
+        let llm_client = Arc::new(LocalLlmClient::new(local_config.clone()));
         
         // Get initial metrics
         let metrics = Arc::new(RwLock::new(llm_client.get_metrics()));
         
-        // Create the load balancer with default configuration
+        // Create the load balancer with configuration from blueprint config
         let load_balancer_config = LoadBalancerConfig {
-            strategy: LoadBalancingStrategy::LeastLoaded,
-            max_retries: 3,
-            selection_timeout_ms: 1000,
+            strategy: blueprint_config.load_balancer.strategy,
+            max_retries: blueprint_config.load_balancer.max_retries,
+            selection_timeout_ms: blueprint_config.load_balancer.selection_timeout_ms,
         };
         let load_balancer = Arc::new(LoadBalancer::new(load_balancer_config));
         
@@ -60,8 +97,9 @@ impl OpenRouterContext {
             env,
             llm_client,
             metrics,
-            config: Arc::new(RwLock::new(config)),
+            config: Arc::new(RwLock::new(local_config)),
             load_balancer,
+            blueprint_config: Arc::new(RwLock::new(blueprint_config)),
         })
     }
     
@@ -89,5 +127,37 @@ impl OpenRouterContext {
         // Try to select a node from the load balancer
         let node = self.load_balancer.select_node_for_model(model).await?;
         Some(node.client)
+    }
+    
+    /// Reload configuration from file
+    pub async fn reload_config(&self) -> Result<(), String> {
+        if let Some(path) = self.env.config_path.as_ref() {
+            match BlueprintConfig::load(path) {
+                Ok(config) => {
+                    // Validate the configuration
+                    if let Err(e) = config.validate() {
+                        return Err(format!("Configuration validation failed: {}", e));
+                    }
+                    
+                    // Update the configuration
+                    *self.blueprint_config.write().await = config;
+                    
+                    // Update the local LLM config
+                    let config = self.blueprint_config.read().await;
+                    let mut local_config = self.config.write().await;
+                    local_config.api_url = config.llm.api_url.clone();
+                    local_config.timeout_seconds = config.llm.timeout_seconds;
+                    local_config.max_concurrent_requests = config.llm.max_concurrent_requests;
+                    local_config.models = config.llm.models.clone();
+                    local_config.additional_params = config.llm.additional_params.clone();
+                    
+                    info!("Configuration reloaded successfully");
+                    Ok(())
+                },
+                Err(e) => Err(format!("Failed to load configuration: {}", e)),
+            }
+        } else {
+            Err("No configuration file specified".to_string())
+        }
     }
 }

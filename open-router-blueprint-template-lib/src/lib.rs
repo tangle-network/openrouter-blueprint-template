@@ -1,109 +1,54 @@
-use blueprint_sdk::extract::Context;
-use blueprint_sdk::tangle::extract::{Optional, TangleArg, TangleResult};
+//! OpenRouter Blueprint Template Library
+//!
+//! This library provides the core functionality for the OpenRouter Blueprint,
+//! enabling Tangle to act as a provider on OpenRouter, balancing requests
+//! across locally hosted LLMs.
+
 use std::sync::Arc;
-use std::sync::atomic::{AtomicUsize, Ordering};
 
 // Export our modules
 pub mod llm;
 pub mod context;
 pub mod jobs;
 pub mod load_balancer;
+pub mod config;
 
 // Re-export key types and functions
 pub use context::OpenRouterContext;
 pub use jobs::{PROCESS_LLM_REQUEST_JOB_ID, REPORT_METRICS_JOB_ID, process_llm_request, report_metrics};
 pub use load_balancer::{LoadBalancer, LoadBalancerConfig, LoadBalancingStrategy};
-
-// The job ID (to be generated?)
-pub const SAY_HELLO_JOB_ID: u32 = 0;
-
-// A context struct
-//
-// The context of a blueprint is set in the `Router`, and passed down to the job functions. See
-// `foo-bin/src/main.rs`.
-//
-// This simply counts the number of times the `say_hello` job has been called, but it could be any
-// global state needed by the blueprint.
-#[derive(Clone)]
-pub struct MyContext {
-    total_greetings: Arc<AtomicUsize>,
-}
-
-impl MyContext {
-    pub fn new() -> Self {
-        Self {
-            total_greetings: Arc::new(AtomicUsize::new(0)),
-        }
-    }
-}
-
-// The job function
-//
-// The arguments are made up of "extractors", which take a portion of the `JobCall` to convert into the
-// target type.
-//
-// The context is passed in as a parameter, and can be used to store any shared state between job calls.
-pub async fn say_hello(
-    Context(ctx): Context<MyContext>,
-    TangleArg(Optional(who)): TangleArg<Optional<String>>,
-) -> TangleResult<String> {
-    let greeting = match who {
-        Some(who) => format!("Hello, {who}!"),
-        None => "Hello World!".to_string(),
-    };
-
-    ctx.total_greetings.fetch_add(1, Ordering::SeqCst);
-
-    // The result is then converted into a `JobResult` to be sent back to the caller.
-    TangleResult(greeting)
-}
+pub use config::{BlueprintConfig, LlmConfig, ApiConfig, ConfigError, Result as ConfigResult};
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use blueprint_sdk::{JobResult, IntoJobResult, tangle_subxt};
-    use tangle_subxt::tangle_testnet_runtime::api::runtime_types::tangle_primitives::services::field::Field;
-    use tangle_subxt::subxt_core::utils::AccountId32;
-    use blueprint_sdk::tangle::serde::new_bounded_string;
-    use tangle_subxt::parity_scale_codec::Decode;
-
-    #[tokio::test]
-    async fn it_works() {
-        let context = MyContext::new();
-        let JobResult::Ok {
-            body: result_raw, ..
-        } = say_hello(Context(context.clone()), TangleArg(None.into()))
-            .await
-            .into_job_result()
-            .unwrap()
-        else {
-            panic!("Job call failed");
-        };
-
-        let result = Vec::<Field<AccountId32>>::decode(&mut (&*result_raw)).expect("Bad result");
-        assert_eq!(
-            result,
-            vec![Field::String(new_bounded_string("Hello World!"))]
-        );
-
-        let JobResult::Ok {
-            body: result2_raw, ..
-        } = say_hello(
-            Context(context.clone()),
-            TangleArg(Some("Alice".to_string()).into()),
-        )
-            .await
-            .into_job_result()
-            .unwrap()
-        else {
-            panic!("Job call failed");
-        };
-        let result2 = Vec::<Field<AccountId32>>::decode(&mut (&*result2_raw)).expect("Bad result");
-        assert_eq!(
-            result2,
-            vec![Field::String(new_bounded_string("Hello, Alice!"))]
-        );
-
-        assert_eq!(context.total_greetings.load(Ordering::SeqCst), 2);
+    use crate::config::BlueprintConfig;
+    
+    #[test]
+    fn test_default_config() {
+        let config = BlueprintConfig::default();
+        assert_eq!(config.llm.api_url, "http://localhost:8000");
+        assert_eq!(config.llm.timeout_seconds, 60);
+        assert_eq!(config.llm.max_concurrent_requests, 5);
+        assert_eq!(config.load_balancer.max_retries, 3);
+        assert_eq!(config.load_balancer.selection_timeout_ms, 1000);
+        assert_eq!(config.api.host, "0.0.0.0");
+        assert_eq!(config.api.port, 3000);
+        assert_eq!(config.api.max_requests_per_minute, 60);
+    }
+    
+    #[test]
+    fn test_config_validation() {
+        let mut config = BlueprintConfig::default();
+        assert!(config.validate().is_ok());
+        
+        // Test invalid configuration
+        config.llm.api_url = "".to_string();
+        assert!(config.validate().is_err());
+        
+        // Reset and test another invalid configuration
+        config = BlueprintConfig::default();
+        config.llm.timeout_seconds = 0;
+        assert!(config.validate().is_err());
     }
 }

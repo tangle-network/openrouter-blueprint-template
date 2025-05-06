@@ -17,16 +17,29 @@ use open_router_blueprint_template_blueprint_lib::{
     REPORT_METRICS_JOB_ID,
     process_llm_request,
     report_metrics,
+    BlueprintConfig,
 };
 use tower::filter::FilterLayer;
-use tracing::error;
+use tracing::{error, info};
 use tracing::level_filters::LevelFilter;
+use std::time::Duration;
 
 #[tokio::main]
 async fn main() -> Result<(), blueprint_sdk::Error> {
     setup_log();
 
+    // Load the blueprint environment
     let env = BlueprintEnvironment::load()?;
+    info!("Blueprint environment loaded");
+    
+    // Log configuration information
+    if let Some(config_path) = env.config_path.as_ref() {
+        info!("Using configuration file: {}", config_path.display());
+    } else {
+        info!("No configuration file specified, using environment variables");
+    }
+
+    // Set up Tangle client and authentication
     let sr25519_signer = env.keystore().first_local::<SpSr25519>()?;
     let sr25519_pair = env.keystore().get_secret::<SpSr25519>(&sr25519_signer)?;
     let st25519_signer = TanglePairSigner::new(sr25519_pair.0);
@@ -38,10 +51,31 @@ async fn main() -> Result<(), blueprint_sdk::Error> {
 
     let tangle_config = TangleConfig::default();
 
-    // Create the OpenRouter context
+    // Create the OpenRouter context with the environment
+    // The context will load the configuration from the environment
+    info!("Creating OpenRouter context");
     let context = OpenRouterContext::new(env.clone()).await?;
+    
+    // Log some configuration details
+    {
+        let config = context.blueprint_config.read().await;
+        info!("LLM API URL: {}", config.llm.api_url);
+        info!("Load balancer strategy: {:?}", config.load_balancer.strategy);
+        info!("API listening on {}:{}", config.api.host, config.api.port);
+    }
 
+    // Set up the service ID for Tangle
     let service_id = env.protocol_settings.tangle()?.service_id.unwrap();
+    info!("Using Tangle service ID: {}", service_id);
+    
+    // Set up metrics reporting interval from configuration
+    let metrics_interval = {
+        let config = context.blueprint_config.read().await;
+        Duration::from_secs(config.api.metrics_interval_seconds.unwrap_or(60))
+    };
+    info!("Metrics reporting interval: {} seconds", metrics_interval.as_secs());
+
+    // Build and run the blueprint
     let result = BlueprintRunner::builder(tangle_config, env)
         .router(
             Router::new()
@@ -56,7 +90,9 @@ async fn main() -> Result<(), blueprint_sdk::Error> {
         )
         .producer(tangle_producer)
         .consumer(tangle_consumer)
-        .with_shutdown_handler(async { println!("Shutting down OpenRouter Blueprint!") })
+        .with_shutdown_handler(async { 
+            info!("Shutting down OpenRouter Blueprint!");
+        })
         .run()
         .await;
 

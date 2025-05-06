@@ -1,0 +1,60 @@
+{
+  "llm": {
+    "api_url": "http://localhost:8000",
+    "timeout_seconds": 60,
+    "max_concurrent_requests": 5,
+    "models": [
+      {
+        "id": "gpt-3.5-turbo",
+        "name": "GPT-3.5 Turbo",
+        "max_context_length": 4096,
+        "supports_chat": true,
+        "supports_text": true,
+        "supports_embeddings": false,
+        "parameters": {}
+      },
+      {
+        "id": "text-davinci-003",
+        "name": "Text Davinci 003",
+        "max_context_length": 4096,
+        "supports_chat": false,
+        "supports_text": true,
+        "supports_embeddings": false,
+        "parameters": {}
+      },
+      {
+        "id": "text-embedding-ada-002",
+        "name": "Text Embedding Ada 002",
+        "max_context_length": 8191,
+        "supports_chat": false,
+        "supports_text": false,
+        "supports_embeddings": true,
+        "parameters": {}
+      }
+    ],
+    "additional_params": {
+      "custom_param1": "value1",
+      "custom_param2": "value2"
+    }
+  },
+  "load_balancer": {
+    "strategy": "LeastLoaded",
+    "max_retries": 3,
+    "selection_timeout_ms": 1000
+  },
+  "api": {
+    "enabled": true,
+    "host": "0.0.0.0",
+    "port": 3000,
+    "auth_enabled": false,
+    "api_key": null,
+    "auth_token": null,
+    "rate_limiting_enabled": true,
+    "max_requests_per_minute": 60,
+    "metrics_interval_seconds": 60
+  },
+  "additional_params": {
+    "custom_blueprint_param1": "value1",
+    "custom_blueprint_param2": "value2"
+  }
+}
