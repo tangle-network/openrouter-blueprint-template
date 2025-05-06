@@ -1,22 +1,22 @@
-# <h1 align="center">Hello World Tangle Blueprint 🌐</h1>
+# <h1 align="center">OpenRouter Blueprint Template for Tangle 🌐</h1>
 
 ## 📚 Overview
 
-This Tangle Blueprint provides a simple Hello World job.
-Blueprints are specifications for <abbr title="Actively Validated Services">AVS</abbr>s on the Tangle Network. An AVS is
-an off-chain service that runs arbitrary computations for a user-specified period of time.
+This Tangle Blueprint provides a template for creating an OpenRouter provider that can support any locally hosted LLM. It enables Tangle to act as a load balancer for multiple LLM instances, allowing operators to participate in the network by running LLM nodes.
 
-Blueprints provide a useful abstraction, allowing developers to create reusable service infrastructures as if they were
-smart contracts. This enables developers to monetize their work and align long-term incentives with the success of their
-creations, benefiting proportionally to their Blueprint's usage.
+Blueprints are specifications for <abbr title="Actively Validated Services">AVS</abbr>s on the Tangle Network. An AVS is an off-chain service that runs arbitrary computations for a user-specified period of time.
+
+This blueprint template allows Tangle to serve as a provider on OpenRouter, balancing requests across locally hosted LLMs running on blueprints for people accessing the models through Tangle.
 
 For more details, please refer to the [project documentation](https://docs.tangle.tools/developers/blueprints/introduction).
 
 ## 🚀 Features
 
-- Custom greeting messages
-- Default "Hello World!" messages
-- ...
+- Standardized interface for local LLMs to connect to Tangle
+- Support for chat completions, text completions, and embeddings
+- Metrics reporting for load balancing
+- Compatible with OpenAI/OpenRouter API formats
+- Extensible design to support various LLM frameworks
 
 ## 📋 Prerequisites
 
@@ -48,19 +48,45 @@ and follow the instructions to create a new project.
 
 ## 🛠️ Development
 
-Once you have created a new project, you can run the following command to start the project:
+### Project Structure
+
+The blueprint follows the standard Tangle Blueprint structure:
+
+- `open-router-blueprint-template-bin/`: Binary crate for initializing the blueprint
+- `open-router-blueprint-template-lib/`: Library crate containing the core logic
+  - `src/llm/`: LLM interface abstraction and implementations
+  - `src/context.rs`: Context structure for the blueprint
+  - `src/jobs.rs`: Job handlers for processing LLM requests
+
+### Building and Testing
+
+To build the project:
 
 ```sh
 cargo build
 ```
 
-to build the project, and
+To run the tests:
+
+```sh
+cargo test
+```
+
+### Deployment
+
+To deploy the blueprint to the Tangle network:
 
 ```sh
 cargo tangle blueprint deploy
 ```
 
-to deploy the blueprint to the Tangle network.
+### Customizing for Your LLM
+
+To customize this blueprint for your specific LLM implementation:
+
+1. Create a new implementation of the `LlmClient` trait in `src/llm/`
+2. Update the context initialization in `src/context.rs` to use your implementation
+3. Modify the configuration as needed for your LLM
 
 ## 📜 License
 

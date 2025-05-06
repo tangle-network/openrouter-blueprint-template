@@ -3,6 +3,15 @@ use blueprint_sdk::tangle::extract::{Optional, TangleArg, TangleResult};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+// Export our modules
+pub mod llm;
+pub mod context;
+pub mod jobs;
+
+// Re-export key types and functions
+pub use context::OpenRouterContext;
+pub use jobs::{PROCESS_LLM_REQUEST_JOB_ID, REPORT_METRICS_JOB_ID, process_llm_request, report_metrics};
+
 // The job ID (to be generated?)
 pub const SAY_HELLO_JOB_ID: u32 = 0;
 

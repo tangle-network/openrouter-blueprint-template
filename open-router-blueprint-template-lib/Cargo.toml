@@ -14,6 +14,14 @@ keywords.workspace = true
 [dependencies]
 blueprint-sdk = { workspace = true, features = ["std", "tangle", "macros"] }
 tokio = { workspace = true, features = ["sync"] }
+async-trait = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+reqwest = { workspace = true }
+uuid = { workspace = true }
+futures = { workspace = true }
+tracing = { workspace = true }
 
 [dev-dependencies]
 blueprint-sdk = { workspace = true, features = ["testing", "tangle"] }
