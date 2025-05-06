@@ -1,8 +1,3 @@
-//! Implementation of the LLM client for locally hosted LLMs
-//!
-//! This module provides a basic implementation of the LLM client interface
-//! for locally hosted LLMs. It can be extended to support various LLM frameworks.
-
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -23,16 +18,16 @@ use super::{
 pub struct LocalLlmConfig {
     /// The base URL for the LLM API
     pub api_url: String,
-    
+
     /// The timeout for API requests in seconds
     pub timeout_seconds: u64,
-    
+
     /// The maximum number of concurrent requests
     pub max_concurrent_requests: usize,
-    
+
     /// The models available on this LLM instance
     pub models: Vec<ModelInfo>,
-    
+
     /// Additional configuration parameters
     pub additional_params: HashMap<String, String>,
 }
@@ -84,10 +79,10 @@ impl Default for LocalLlmConfig {
 pub struct LocalLlmClient {
     /// The HTTP client for making API requests
     http_client: reqwest::Client,
-    
+
     /// The configuration for this client
     config: LocalLlmConfig,
-    
+
     /// Metrics for this client
     metrics: Arc<RwLock<NodeMetrics>>,
 }
@@ -99,7 +94,7 @@ impl LocalLlmClient {
             .timeout(Duration::from_secs(config.timeout_seconds))
             .build()
             .unwrap_or_default();
-        
+
         let metrics = Arc::new(RwLock::new(NodeMetrics {
             cpu_utilization: 0.0,
             memory_utilization: 0.0,
@@ -112,14 +107,14 @@ impl LocalLlmClient {
                 .unwrap_or_default()
                 .as_secs(),
         }));
-        
+
         Self {
             http_client,
             config,
             metrics,
         }
     }
-    
+
     /// Update the metrics for this client
     pub async fn update_metrics(&self, cpu: f32, memory: f32, gpu: Option<f32>) {
         let mut metrics = self.metrics.write().await;
@@ -131,24 +126,24 @@ impl LocalLlmClient {
             .unwrap_or_default()
             .as_secs();
     }
-    
+
     /// Record a request being processed
     async fn record_request_start(&self) {
         let mut metrics = self.metrics.write().await;
         metrics.active_requests += 1;
     }
-    
+
     /// Record a request being completed
     async fn record_request_end(&self, duration_ms: u64) {
         let mut metrics = self.metrics.write().await;
         metrics.active_requests = metrics.active_requests.saturating_sub(1);
-        
+
         // Update average response time with exponential moving average
         const ALPHA: f64 = 0.1; // Weight for new samples
         let old_avg = metrics.average_response_time_ms as f64;
         let new_avg = old_avg * (1.0 - ALPHA) + (duration_ms as f64) * ALPHA;
         metrics.average_response_time_ms = new_avg as u64;
-        
+
         // Increment requests per minute (this is simplified and should be improved)
         metrics.requests_per_minute += 1;
     }
@@ -159,7 +154,7 @@ impl LlmClient for LocalLlmClient {
     fn get_supported_models(&self) -> Vec<ModelInfo> {
         self.config.models.clone()
     }
-    
+
     fn get_capabilities(&self) -> LlmCapabilities {
         LlmCapabilities {
             supports_streaming: false, // Simplified for now
@@ -168,23 +163,24 @@ impl LlmClient for LocalLlmClient {
             features: HashMap::new(),
         }
     }
-    
+
     fn get_metrics(&self) -> NodeMetrics {
         // Clone the current metrics (this will be updated asynchronously)
-        futures::executor::block_on(async {
-            self.metrics.read().await.clone()
-        })
+        futures::executor::block_on(async { self.metrics.read().await.clone() })
     }
-    
-    async fn chat_completion(&self, request: ChatCompletionRequest) -> Result<ChatCompletionResponse> {
+
+    async fn chat_completion(
+        &self,
+        request: ChatCompletionRequest,
+    ) -> Result<ChatCompletionResponse> {
         // Check if the model is supported
         if !self.config.models.iter().any(|m| m.id == request.model) {
             return Err(LlmError::ModelNotSupported(request.model));
         }
-        
+
         let start_time = SystemTime::now();
         self.record_request_start().await;
-        
+
         // In a real implementation, we would make an HTTP request to the LLM API
         // For now, we'll just create a mock response
         let response = ChatCompletionResponse {
@@ -198,26 +194,29 @@ impl LlmClient for LocalLlmClient {
             choices: vec![],
             usage: None,
         };
-        
+
         let duration = SystemTime::now()
             .duration_since(start_time)
             .unwrap_or_default()
             .as_millis() as u64;
-        
+
         self.record_request_end(duration).await;
-        
+
         Ok(response)
     }
-    
-    async fn text_completion(&self, request: TextCompletionRequest) -> Result<TextCompletionResponse> {
+
+    async fn text_completion(
+        &self,
+        request: TextCompletionRequest,
+    ) -> Result<TextCompletionResponse> {
         // Check if the model is supported
         if !self.config.models.iter().any(|m| m.id == request.model) {
             return Err(LlmError::ModelNotSupported(request.model));
         }
-        
+
         let start_time = SystemTime::now();
         self.record_request_start().await;
-        
+
         // In a real implementation, we would make an HTTP request to the LLM API
         // For now, we'll just create a mock response
         let response = TextCompletionResponse {
@@ -231,26 +230,26 @@ impl LlmClient for LocalLlmClient {
             choices: vec![],
             usage: None,
         };
-        
+
         let duration = SystemTime::now()
             .duration_since(start_time)
             .unwrap_or_default()
             .as_millis() as u64;
-        
+
         self.record_request_end(duration).await;
-        
+
         Ok(response)
     }
-    
+
     async fn embeddings(&self, request: EmbeddingRequest) -> Result<EmbeddingResponse> {
         // Check if the model is supported
         if !self.config.models.iter().any(|m| m.id == request.model) {
             return Err(LlmError::ModelNotSupported(request.model));
         }
-        
+
         let start_time = SystemTime::now();
         self.record_request_start().await;
-        
+
         // In a real implementation, we would make an HTTP request to the LLM API
         // For now, we'll just create a mock response
         let response = EmbeddingResponse {
@@ -259,14 +258,14 @@ impl LlmClient for LocalLlmClient {
             data: vec![],
             usage: None,
         };
-        
+
         let duration = SystemTime::now()
             .duration_since(start_time)
             .unwrap_or_default()
             .as_millis() as u64;
-        
+
         self.record_request_end(duration).await;
-        
+
         Ok(response)
     }
 }

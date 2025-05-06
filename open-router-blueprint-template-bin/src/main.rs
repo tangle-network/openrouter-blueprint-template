@@ -12,17 +12,13 @@ use blueprint_sdk::tangle::filters::MatchesServiceId;
 use blueprint_sdk::tangle::layers::TangleLayer;
 use blueprint_sdk::tangle::producer::TangleProducer;
 use open_router_blueprint_template_lib::{
-    OpenRouterContext,
-    PROCESS_LLM_REQUEST_JOB_ID,
-    REPORT_METRICS_JOB_ID,
-    process_llm_request,
-    report_metrics,
-    BlueprintConfig,
+    BlueprintConfig, OpenRouterContext, PROCESS_LLM_REQUEST_JOB_ID, REPORT_METRICS_JOB_ID,
+    process_llm_request, report_metrics,
 };
-use tower::filter::FilterLayer;
-use tracing::{error, info};
-use tracing::level_filters::LevelFilter;
 use std::time::Duration;
+use tower::filter::FilterLayer;
+use tracing::level_filters::LevelFilter;
+use tracing::{error, info};
 
 #[tokio::main]
 async fn main() -> Result<(), blueprint_sdk::Error> {
@@ -31,7 +27,7 @@ async fn main() -> Result<(), blueprint_sdk::Error> {
     // Load the blueprint environment
     let env = BlueprintEnvironment::load()?;
     info!("Blueprint environment loaded");
-    
+
     // Log configuration information
     if let Some(data_dir) = env.data_dir.as_ref() {
         let config_path = data_dir.join("config.json");
@@ -60,32 +56,41 @@ async fn main() -> Result<(), blueprint_sdk::Error> {
     // The context will load the configuration from the environment
     info!("Creating OpenRouter context");
     let context = OpenRouterContext::new(env.clone()).await?;
-    
+
     // Log some configuration details
     {
         let config = context.blueprint_config.read().await;
         info!("LLM API URL: {}", config.llm.api_url);
-        info!("Load balancer strategy: {:?}", config.load_balancer.strategy);
+        info!(
+            "Load balancer strategy: {:?}",
+            config.load_balancer.strategy
+        );
         info!("API listening on {}:{}", config.api.host, config.api.port);
     }
 
     // Set up the service ID for Tangle
     let service_id = env.protocol_settings.tangle()?.service_id.unwrap();
     info!("Using Tangle service ID: {}", service_id);
-    
+
     // Set up metrics reporting interval from configuration
     let metrics_interval = {
         let config = context.blueprint_config.read().await;
         Duration::from_secs(config.api.metrics_interval_seconds)
     };
-    info!("Metrics reporting interval: {} seconds", metrics_interval.as_secs());
+    info!(
+        "Metrics reporting interval: {} seconds",
+        metrics_interval.as_secs()
+    );
 
     // Build and run the blueprint
     let result = BlueprintRunner::builder(tangle_config, env)
         .router(
             Router::new()
                 // Add the LLM request processing job
-                .route(PROCESS_LLM_REQUEST_JOB_ID, process_llm_request.layer(TangleLayer))
+                .route(
+                    PROCESS_LLM_REQUEST_JOB_ID,
+                    process_llm_request.layer(TangleLayer),
+                )
                 // Add the metrics reporting job
                 .route(REPORT_METRICS_JOB_ID, report_metrics.layer(TangleLayer))
                 // Add the service ID filter
@@ -95,7 +100,7 @@ async fn main() -> Result<(), blueprint_sdk::Error> {
         )
         .producer(tangle_producer)
         .consumer(tangle_consumer)
-        .with_shutdown_handler(async { 
+        .with_shutdown_handler(async {
             info!("Shutting down OpenRouter Blueprint!");
         })
         .run()

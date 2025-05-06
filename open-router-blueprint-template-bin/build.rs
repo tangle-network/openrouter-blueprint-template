@@ -1,8 +1,8 @@
-use blueprint_sdk::tangle::blueprint;
 use blueprint_sdk::build;
+use blueprint_sdk::tangle::blueprint;
+use open_router_blueprint_template_blueprint_lib::say_hello;
 use std::path::Path;
 use std::process;
-use open_router_blueprint_template_blueprint_lib::say_hello;
 
 fn main() {
     // Automatically update dependencies with `soldeer` (if available), and build the contracts.

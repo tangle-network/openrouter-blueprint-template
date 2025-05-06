@@ -1,29 +1,25 @@
-//! OpenRouter Blueprint Template Library
-//!
-//! This library provides the core functionality for the OpenRouter Blueprint,
-//! enabling Tangle to act as a provider on OpenRouter, balancing requests
-//! across locally hosted LLMs.
-
 use std::sync::Arc;
 
 // Export our modules
-pub mod llm;
+pub mod config;
 pub mod context;
 pub mod jobs;
+pub mod llm;
 pub mod load_balancer;
-pub mod config;
 
 // Re-export key types and functions
+pub use config::{ApiConfig, BlueprintConfig, ConfigError, LlmConfig, Result as ConfigResult};
 pub use context::OpenRouterContext;
-pub use jobs::{PROCESS_LLM_REQUEST_JOB_ID, REPORT_METRICS_JOB_ID, process_llm_request, report_metrics};
+pub use jobs::{
+    process_llm_request, report_metrics, PROCESS_LLM_REQUEST_JOB_ID, REPORT_METRICS_JOB_ID,
+};
 pub use load_balancer::{LoadBalancer, LoadBalancerConfig, LoadBalancingStrategy};
-pub use config::{BlueprintConfig, LlmConfig, ApiConfig, ConfigError, Result as ConfigResult};
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::config::BlueprintConfig;
-    
+
     #[test]
     fn test_default_config() {
         let config = BlueprintConfig::default();
@@ -36,16 +32,16 @@ mod tests {
         assert_eq!(config.api.port, 3000);
         assert_eq!(config.api.max_requests_per_minute, 60);
     }
-    
+
     #[test]
     fn test_config_validation() {
         let mut config = BlueprintConfig::default();
         assert!(config.validate().is_ok());
-        
+
         // Test invalid configuration
         config.llm.api_url = "".to_string();
         assert!(config.validate().is_err());
-        
+
         // Reset and test another invalid configuration
         config = BlueprintConfig::default();
         config.llm.timeout_seconds = 0;
