@@ -131,3 +131,92 @@ pub struct NodeMetrics {
     /// Timestamp of the last update (Unix timestamp in seconds)
     pub last_updated: u64,
 }
+
+/// Trait for LLM clients that support streaming responses
+#[async_trait::async_trait]
+pub trait StreamingLlmClient: LlmClient {
+    /// Process a streaming chat completion request
+    async fn streaming_chat_completion(&self, request: ChatCompletionRequest) -> Result<ChatCompletionStream>;
+    
+    /// Process a streaming text completion request
+    async fn streaming_text_completion(&self, request: TextCompletionRequest) -> Result<TextCompletionStream>;
+}
+
+/// Extension trait for checking if an LlmClient also implements StreamingLlmClient
+pub trait LlmClientExt {
+    /// Check if this client supports streaming
+    fn supports_streaming(&self) -> bool;
+    
+    /// Try to get this client as a StreamingLlmClient
+    fn as_streaming(&self) -> Option<&dyn StreamingLlmClient>;
+    
+    /// Process a chat completion request (extension method)
+    async fn chat_completion_ext(&self, request: ChatCompletionRequest) -> Result<ChatCompletionResponse>;
+    
+    /// Process a text completion request (extension method)
+    async fn text_completion_ext(&self, request: TextCompletionRequest) -> Result<TextCompletionResponse>;
+    
+    /// Process an embedding request (extension method)
+    async fn embeddings_ext(&self, request: EmbeddingRequest) -> Result<EmbeddingResponse>;
+}
+
+impl<T: LlmClient + 'static> LlmClientExt for T {
+    fn supports_streaming(&self) -> bool {
+        // Check if the client's capabilities indicate streaming support
+        self.get_capabilities().supports_streaming
+    }
+    
+    fn as_streaming(&self) -> Option<&dyn StreamingLlmClient> {
+        // If the client doesn't claim to support streaming, don't even try
+        if !self.supports_streaming() {
+            return None;
+        }
+        
+        // We can't directly downcast to dyn StreamingLlmClient because it doesn't have a known size
+        // Instead, we'll return None for now and implement a different approach
+        None // Placeholder - proper downcasting would require a different approach
+    }
+    
+    async fn chat_completion_ext(&self, request: ChatCompletionRequest) -> Result<ChatCompletionResponse> {
+        self.chat_completion(request).await
+    }
+    
+    async fn text_completion_ext(&self, request: TextCompletionRequest) -> Result<TextCompletionResponse> {
+        self.text_completion(request).await
+    }
+    
+    async fn embeddings_ext(&self, request: EmbeddingRequest) -> Result<EmbeddingResponse> {
+        self.embeddings(request).await
+    }
+}
+
+impl LlmClientExt for std::sync::Arc<dyn LlmClient> {
+    fn supports_streaming(&self) -> bool {
+        // Check if the client's capabilities indicate streaming support
+        self.get_capabilities().supports_streaming
+    }
+    
+    fn as_streaming(&self) -> Option<&dyn StreamingLlmClient> {
+        // If the client doesn't claim to support streaming, don't even try
+        if !self.supports_streaming() {
+            return None;
+        }
+        
+        // For Arc<dyn LlmClient>, we need a different approach
+        // This is a simplification that assumes if it supports streaming,
+        // we can try to use it as a streaming client
+        None // This is a placeholder - we'll need to implement proper downcasting
+    }
+    
+    async fn chat_completion_ext(&self, request: ChatCompletionRequest) -> Result<ChatCompletionResponse> {
+        self.chat_completion(request).await
+    }
+    
+    async fn text_completion_ext(&self, request: TextCompletionRequest) -> Result<TextCompletionResponse> {
+        self.text_completion(request).await
+    }
+    
+    async fn embeddings_ext(&self, request: EmbeddingRequest) -> Result<EmbeddingResponse> {
+        self.embeddings(request).await
+    }
+}

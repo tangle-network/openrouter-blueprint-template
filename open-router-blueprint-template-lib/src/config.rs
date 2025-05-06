@@ -186,28 +186,26 @@ impl Default for ApiConfig {
 impl BlueprintConfig {
     /// Load configuration from a file
     pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let mut file = File::open(path)?;
+        let mut file = File::open(path.as_ref()).map_err(ConfigError::FileReadError)?;
+        
         let mut contents = String::new();
-        file.read_to_string(&mut contents)?;
+        file.read_to_string(&mut contents).map_err(ConfigError::FileReadError)?;
         
         // Parse the configuration based on the file extension
-        let path = path.as_ref();
-        let config = if let Some(extension) = path.extension() {
-            match extension.to_str() {
-                Some("json") => serde_json::from_str(&contents)
-                    .map_err(|e| ConfigError::ParseError(format!("Failed to parse JSON: {}", e)))?,
-                Some("toml") => toml::from_str(&contents)
-                    .map_err(|e| ConfigError::ParseError(format!("Failed to parse TOML: {}", e)))?,
-                Some("yaml") | Some("yml") => serde_yaml::from_str(&contents)
-                    .map_err(|e| ConfigError::ParseError(format!("Failed to parse YAML: {}", e)))?,
-                _ => return Err(ConfigError::ParseError(format!(
-                    "Unsupported file extension: {:?}", extension
-                ))),
-            }
-        } else {
-            return Err(ConfigError::ParseError(
-                "File has no extension".to_string()
-            ));
+        let config: Self = match path.as_ref()
+            .extension()
+            .and_then(|ext| ext.to_str())
+        {
+            Some("json") => serde_json::from_str::<Self>(&contents)
+                .map_err(|e| ConfigError::ParseError(e.to_string()))?,
+            Some("toml") => toml::from_str::<Self>(&contents)
+                .map_err(|e| ConfigError::ParseError(e.to_string()))?,
+            Some("yaml") | Some("yml") => serde_yaml::from_str::<Self>(&contents)
+                .map_err(|e| ConfigError::ParseError(e.to_string()))?,
+            _ => return Err(ConfigError::ParseError(format!(
+                "Unsupported file extension: {:?}",
+                path.as_ref().extension()
+            ))),
         };
         
         Ok(config)

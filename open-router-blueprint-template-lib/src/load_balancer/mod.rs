@@ -8,11 +8,12 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use tracing::{debug, info};
+use serde::{Serialize, Deserialize};
 
 use crate::llm::{LlmClient, ModelInfo, NodeMetrics};
 
 /// Load balancing strategy
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum LoadBalancingStrategy {
     /// Round-robin strategy
     RoundRobin,
@@ -34,7 +35,7 @@ impl Default for LoadBalancingStrategy {
 }
 
 /// Configuration for the load balancer
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LoadBalancerConfig {
     /// The load balancing strategy to use
     pub strategy: LoadBalancingStrategy,
@@ -57,7 +58,7 @@ impl Default for LoadBalancerConfig {
 }
 
 /// A node in the load balancer
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct LoadBalancerNode {
     /// Unique identifier for the node
     pub id: String,
@@ -70,6 +71,17 @@ pub struct LoadBalancerNode {
     
     /// Whether this node is active
     pub active: bool,
+}
+
+impl std::fmt::Debug for LoadBalancerNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LoadBalancerNode")
+            .field("id", &self.id)
+            .field("client", &"<dyn LlmClient>")
+            .field("metrics", &self.metrics)
+            .field("active", &self.active)
+            .finish()
+    }
 }
 
 /// Load balancer for distributing requests across multiple LLM nodes
@@ -105,7 +117,7 @@ impl LoadBalancer {
         };
         
         let mut nodes = self.nodes.write().await;
-        nodes.insert(id, node);
+        nodes.insert(id.clone(), node);
         
         info!("Added node to load balancer: {}", id);
     }
@@ -240,7 +252,8 @@ impl LoadBalancer {
         // Find nodes that support the model and sort by capability
         let mut scored_nodes: Vec<_> = nodes.iter()
             .filter_map(|n| {
-                let model_info = n.client.get_supported_models()
+                let supported_models = n.client.get_supported_models();
+                let model_info = supported_models
                     .iter()
                     .find(|m| m.id == model)?;
                 
@@ -284,5 +297,21 @@ impl LoadBalancer {
         nodes.iter()
             .min_by_key(|n| n.metrics.average_response_time_ms)
             .cloned()
+    }
+    
+    /// Calculate a score for a node based on its capabilities for a specific model
+    async fn calculate_capability_score_for_model(&self, node_id: &str, model: &str) -> Option<f64> {
+        let nodes = self.nodes.read().await;
+        let n = nodes.get(node_id)?;
+        
+        // Find the model info
+        let supported_models = n.client.get_supported_models();
+        let model_info = supported_models
+            .iter()
+            .find(|m| m.id == model)?;
+        
+        let score = self.calculate_capability_score(n, model_info) as f64;
+        
+        Some(score)
     }
 }

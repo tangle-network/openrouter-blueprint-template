@@ -12,7 +12,7 @@ categories.workspace = true
 keywords.workspace = true
 
 [dependencies]
-open-router-blueprint-template-blueprint-lib.workspace = true
+open-router-blueprint-template-lib = { path = "../open-router-blueprint-template-lib" }
 
 blueprint-sdk = { workspace = true, features = ["std"] }
 tokio = { workspace = true, features = ["rt-multi-thread"] }
@@ -21,7 +21,7 @@ tracing = { workspace = true }
 tower.workspace = true
 
 [build-dependencies]
-open-router-blueprint-template-blueprint-lib.workspace = true
+open-router-blueprint-template-lib = { path = "../open-router-blueprint-template-lib" }
 blueprint-sdk = { workspace = true, features = ["macros", "build"] }
 
 [package.metadata.blueprint]

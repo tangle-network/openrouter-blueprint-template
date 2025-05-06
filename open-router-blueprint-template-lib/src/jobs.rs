@@ -9,7 +9,7 @@ use tracing::{debug, info, warn};
 use std::sync::Arc;
 
 use crate::context::OpenRouterContext;
-use crate::llm::{LlmClient, LlmRequest, LlmResponse, StreamingLlmClient};
+use crate::llm::{LlmRequest, LlmResponse, StreamingLlmClient, LlmClientExt};
 
 /// Job ID for processing LLM requests
 pub const PROCESS_LLM_REQUEST_JOB_ID: u32 = 0;
@@ -69,8 +69,8 @@ pub async fn process_llm_request(
             LlmRequest::ChatCompletion(req) => {
                 debug!("Processing streaming chat completion request for model: {}", req.model);
                 
-                // Try to cast the client to a StreamingLlmClient
-                if let Some(streaming_client) = llm_client.clone().downcast_arc::<dyn StreamingLlmClient>() {
+                // Try to get a streaming client
+                if let Some(streaming_client) = llm_client.as_streaming() {
                     // Use the streaming client
                     let stream = streaming_client.streaming_chat_completion(req).await
                         .map_err(|e| blueprint_sdk::Error::Other(e.to_string()))?;
@@ -83,7 +83,7 @@ pub async fn process_llm_request(
                 } else {
                     // Fall back to non-streaming if the client doesn't support streaming
                     warn!("Selected LLM client doesn't support streaming, falling back to non-streaming");
-                    let chat_response = llm_client.chat_completion(req).await
+                    let chat_response = llm_client.chat_completion_ext(req).await
                         .map_err(|e| blueprint_sdk::Error::Other(e.to_string()))?;
                     LlmResponse::ChatCompletion(chat_response)
                 }
@@ -91,8 +91,8 @@ pub async fn process_llm_request(
             LlmRequest::TextCompletion(req) => {
                 debug!("Processing streaming text completion request for model: {}", req.model);
                 
-                // Try to cast the client to a StreamingLlmClient
-                if let Some(streaming_client) = llm_client.clone().downcast_arc::<dyn StreamingLlmClient>() {
+                // Try to get a streaming client
+                if let Some(streaming_client) = llm_client.as_streaming() {
                     // Use the streaming client
                     let stream = streaming_client.streaming_text_completion(req).await
                         .map_err(|e| blueprint_sdk::Error::Other(e.to_string()))?;
@@ -105,14 +105,14 @@ pub async fn process_llm_request(
                 } else {
                     // Fall back to non-streaming if the client doesn't support streaming
                     warn!("Selected LLM client doesn't support streaming, falling back to non-streaming");
-                    let text_response = llm_client.text_completion(req).await
+                    let text_response = llm_client.text_completion_ext(req).await
                         .map_err(|e| blueprint_sdk::Error::Other(e.to_string()))?;
                     LlmResponse::TextCompletion(text_response)
                 }
             },
             LlmRequest::Embedding(req) => {
                 debug!("Processing embedding request for model: {}", req.model);
-                let embedding_response = llm_client.embeddings(req).await
+                let embedding_response = llm_client.embeddings_ext(req).await
                     .map_err(|e| blueprint_sdk::Error::Other(e.to_string()))?;
                 LlmResponse::Embedding(embedding_response)
             },
@@ -122,19 +122,19 @@ pub async fn process_llm_request(
         match request {
             LlmRequest::ChatCompletion(req) => {
                 debug!("Processing chat completion request for model: {}", req.model);
-                let chat_response = llm_client.chat_completion(req).await
+                let chat_response = llm_client.chat_completion_ext(req).await
                     .map_err(|e| blueprint_sdk::Error::Other(e.to_string()))?;
                 LlmResponse::ChatCompletion(chat_response)
             },
             LlmRequest::TextCompletion(req) => {
                 debug!("Processing text completion request for model: {}", req.model);
-                let text_response = llm_client.text_completion(req).await
+                let text_response = llm_client.text_completion_ext(req).await
                     .map_err(|e| blueprint_sdk::Error::Other(e.to_string()))?;
                 LlmResponse::TextCompletion(text_response)
             },
             LlmRequest::Embedding(req) => {
                 debug!("Processing embedding request for model: {}", req.model);
-                let embedding_response = llm_client.embeddings(req).await
+                let embedding_response = llm_client.embeddings_ext(req).await
                     .map_err(|e| blueprint_sdk::Error::Other(e.to_string()))?;
                 LlmResponse::Embedding(embedding_response)
             },

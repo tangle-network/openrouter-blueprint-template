@@ -9,12 +9,15 @@ tokio = { workspace = true, features = ["sync"] }
 async-trait = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+toml = "0.8.10"
+serde_yaml = "0.9.30"
 thiserror = { workspace = true }
 reqwest = { workspace = true }
 uuid = { workspace = true }
 futures = { workspace = true }
 tracing = { workspace = true }
 tokio-stream = { version = "0.1" }
+tempfile = "3.10.1"
 
 [dev-dependencies]
 blueprint-sdk = { workspace = true, features = ["testing", "tangle"] }

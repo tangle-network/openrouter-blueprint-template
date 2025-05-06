@@ -1,5 +1,5 @@
-use blueprint_sdk::build;
 use blueprint_sdk::tangle::blueprint;
+use blueprint_sdk::build;
 use std::path::Path;
 use std::process;
 use open_router_blueprint_template_blueprint_lib::say_hello;
@@ -24,24 +24,23 @@ fn main() {
     // The `blueprint!` macro generates the info necessary for the `blueprint.json`.
     // See its docs for all available metadata fields.
     let blueprint = blueprint! {
-        name: "experiment",
+        name: "open-router-blueprint",
         master_manager_revision: "Latest",
-        manager: { Evm = "HelloBlueprint" },
+        manager: { Evm = "OpenRouterBlueprint" },
         jobs: [say_hello]
     };
 
     match blueprint {
         Ok(blueprint) => {
-            // TODO: Should be a helper function probably
             let json = blueprint_sdk::tangle::metadata::macros::ext::serde_json::to_string_pretty(
                 &blueprint,
             )
-                .unwrap();
+            .unwrap();
             std::fs::write(
                 Path::new(env!("CARGO_WORKSPACE_DIR")).join("blueprint.json"),
                 json.as_bytes(),
             )
-                .unwrap();
+            .unwrap();
         }
         Err(e) => {
             println!("cargo::error={e:?}");

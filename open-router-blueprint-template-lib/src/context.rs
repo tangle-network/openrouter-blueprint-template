@@ -39,22 +39,28 @@ impl OpenRouterContext {
     /// Create a new OpenRouter context
     pub async fn new(env: BlueprintEnvironment) -> Result<Self, blueprint_sdk::Error> {
         // Load configuration
-        let blueprint_config = match env.config_path.as_ref() {
-            Some(path) => {
-                info!("Loading configuration from {}", path.display());
-                match BlueprintConfig::load(path) {
-                    Ok(config) => {
-                        info!("Configuration loaded successfully");
-                        config
-                    },
-                    Err(e) => {
-                        info!("Failed to load configuration: {}, using default", e);
-                        BlueprintConfig::from_env()
+        let blueprint_config = {
+            // Try to load from the data directory if it exists
+            let config_path = env.data_dir.as_ref().map(|dir| dir.join("config.json"));
+            if let Some(path) = &config_path {
+                if path.exists() {
+                    info!("Loading configuration from {}", path.display());
+                    match BlueprintConfig::load(path) {
+                        Ok(config) => {
+                            info!("Configuration loaded successfully");
+                            config
+                        },
+                        Err(e) => {
+                            info!("Failed to load configuration: {}, using default", e);
+                            BlueprintConfig::from_env()
+                        }
                     }
+                } else {
+                    info!("No configuration file found, using environment variables");
+                    BlueprintConfig::from_env()
                 }
-            },
-            None => {
-                info!("No configuration file specified, using environment variables");
+            } else {
+                info!("No data directory specified, using environment variables");
                 BlueprintConfig::from_env()
             }
         };
@@ -105,11 +111,18 @@ impl OpenRouterContext {
     
     /// Update the metrics for this node
     pub async fn update_metrics(&self) {
-        let metrics = self.llm_client.get_metrics();
-        *self.metrics.write().await = metrics;
+        // First update our internal metrics
+        {
+            let metrics = self.llm_client.get_metrics();
+            let mut metrics_lock = self.metrics.write().await;
+            *metrics_lock = metrics;
+        }
         
-        // Also update the metrics in the load balancer
-        self.load_balancer.update_node_metrics("default", metrics).await;
+        // Then update the load balancer metrics with a fresh copy
+        {
+            let metrics = self.llm_client.get_metrics();
+            self.load_balancer.update_node_metrics("default", metrics).await;
+        }
     }
     
     /// Add an LLM node to the load balancer
@@ -131,33 +144,39 @@ impl OpenRouterContext {
     
     /// Reload configuration from file
     pub async fn reload_config(&self) -> Result<(), String> {
-        if let Some(path) = self.env.config_path.as_ref() {
-            match BlueprintConfig::load(path) {
-                Ok(config) => {
-                    // Validate the configuration
-                    if let Err(e) = config.validate() {
-                        return Err(format!("Configuration validation failed: {}", e));
-                    }
-                    
-                    // Update the configuration
-                    *self.blueprint_config.write().await = config;
-                    
-                    // Update the local LLM config
-                    let config = self.blueprint_config.read().await;
-                    let mut local_config = self.config.write().await;
-                    local_config.api_url = config.llm.api_url.clone();
-                    local_config.timeout_seconds = config.llm.timeout_seconds;
-                    local_config.max_concurrent_requests = config.llm.max_concurrent_requests;
-                    local_config.models = config.llm.models.clone();
-                    local_config.additional_params = config.llm.additional_params.clone();
-                    
-                    info!("Configuration reloaded successfully");
-                    Ok(())
-                },
-                Err(e) => Err(format!("Failed to load configuration: {}", e)),
+        // Try to load from the data directory
+        if let Some(data_dir) = self.env.data_dir.as_ref() {
+            let config_path = data_dir.join("config.json");
+            if config_path.exists() {
+                match BlueprintConfig::load(&config_path) {
+                    Ok(config) => {
+                        // Validate the configuration
+                        if let Err(e) = config.validate() {
+                            return Err(format!("Configuration validation failed: {}", e));
+                        }
+                        
+                        // Update the configuration
+                        *self.blueprint_config.write().await = config;
+                        
+                        // Update the local LLM config
+                        let config = self.blueprint_config.read().await;
+                        let mut local_config = self.config.write().await;
+                        local_config.api_url = config.llm.api_url.clone();
+                        local_config.timeout_seconds = config.llm.timeout_seconds;
+                        local_config.max_concurrent_requests = config.llm.max_concurrent_requests;
+                        local_config.models = config.llm.models.clone();
+                        local_config.additional_params = config.llm.additional_params.clone();
+                        
+                        info!("Configuration reloaded successfully");
+                        Ok(())
+                    },
+                    Err(e) => Err(format!("Failed to load configuration: {}", e)),
+                }
+            } else {
+                Err("Configuration file not found".to_string())
             }
         } else {
-            Err("No configuration file specified".to_string())
+            Err("Data directory not specified".to_string())
         }
     }
 }

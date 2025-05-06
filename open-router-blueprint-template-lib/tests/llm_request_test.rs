@@ -6,7 +6,7 @@
 use std::sync::Arc;
 
 use blueprint_sdk::{extract::Context, IntoJobResult, JobResult};
-use open_router_blueprint_template_blueprint_lib::{
+use open_router_blueprint_template_lib::{
     context::OpenRouterContext,
     jobs::process_llm_request,
     llm::{
@@ -80,7 +80,7 @@ async fn test_process_chat_completion_request() -> color_eyre::Result<()> {
     // Verify that the job was successful
     match job_result {
         JobResult::Ok { .. } => Ok(()),
-        JobResult::Err { error, .. } => Err(color_eyre::eyre::eyre!("Job failed: {}", error)),
+        JobResult::Err(error) => Err(color_eyre::eyre::eyre!("Job failed: {}", error)),
     }
 }
 
@@ -136,7 +136,7 @@ async fn test_process_text_completion_request() -> color_eyre::Result<()> {
     // Verify that the job was successful
     match job_result {
         JobResult::Ok { .. } => Ok(()),
-        JobResult::Err { error, .. } => Err(color_eyre::eyre::eyre!("Job failed: {}", error)),
+        JobResult::Err(error) => Err(color_eyre::eyre::eyre!("Job failed: {}", error)),
     }
 }
 
@@ -188,6 +188,6 @@ async fn test_process_embedding_request() -> color_eyre::Result<()> {
     // Verify that the job was successful
     match job_result {
         JobResult::Ok { .. } => Ok(()),
-        JobResult::Err { error, .. } => Err(color_eyre::eyre::eyre!("Job failed: {}", error)),
+        JobResult::Err(error) => Err(color_eyre::eyre::eyre!("Job failed: {}", error)),
     }
 }

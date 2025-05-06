@@ -15,7 +15,7 @@ categories = ["cryptography", "cryptography::cryptocurrencies"]
 keywords = ["tangle", "blueprint", "avs"]
 
 [workspace.dependencies]
-open-router-blueprint-template-blueprint-lib = { path = "open-router-blueprint-template-lib" }
+open-router-blueprint-template-lib = { path = "open-router-blueprint-template-lib" }
 
 blueprint-sdk = { version = "0.1.0-alpha.6", default-features = false }
 tokio = { version = "1", default-features = false }

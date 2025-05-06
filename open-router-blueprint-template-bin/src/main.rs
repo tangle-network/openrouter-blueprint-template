@@ -11,7 +11,7 @@ use blueprint_sdk::tangle::consumer::TangleConsumer;
 use blueprint_sdk::tangle::filters::MatchesServiceId;
 use blueprint_sdk::tangle::layers::TangleLayer;
 use blueprint_sdk::tangle::producer::TangleProducer;
-use open_router_blueprint_template_blueprint_lib::{
+use open_router_blueprint_template_lib::{
     OpenRouterContext,
     PROCESS_LLM_REQUEST_JOB_ID,
     REPORT_METRICS_JOB_ID,
@@ -33,10 +33,15 @@ async fn main() -> Result<(), blueprint_sdk::Error> {
     info!("Blueprint environment loaded");
     
     // Log configuration information
-    if let Some(config_path) = env.config_path.as_ref() {
-        info!("Using configuration file: {}", config_path.display());
+    if let Some(data_dir) = env.data_dir.as_ref() {
+        let config_path = data_dir.join("config.json");
+        if config_path.exists() {
+            info!("Using configuration file: {}", config_path.display());
+        } else {
+            info!("No configuration file found in data directory, using environment variables");
+        }
     } else {
-        info!("No configuration file specified, using environment variables");
+        info!("No data directory specified, using environment variables");
     }
 
     // Set up Tangle client and authentication
@@ -71,7 +76,7 @@ async fn main() -> Result<(), blueprint_sdk::Error> {
     // Set up metrics reporting interval from configuration
     let metrics_interval = {
         let config = context.blueprint_config.read().await;
-        Duration::from_secs(config.api.metrics_interval_seconds.unwrap_or(60))
+        Duration::from_secs(config.api.metrics_interval_seconds)
     };
     info!("Metrics reporting interval: {} seconds", metrics_interval.as_secs());
 
