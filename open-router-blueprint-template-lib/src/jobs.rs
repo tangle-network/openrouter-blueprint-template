@@ -1,10 +1,9 @@
 use blueprint_sdk::extract::Context;
 use blueprint_sdk::tangle::extract::{TangleArg, TangleResult};
-use std::sync::Arc;
 use tracing::{debug, info, warn};
 
 use crate::context::OpenRouterContext;
-use crate::llm::{LlmClientExt, LlmRequest, LlmResponse, StreamingLlmClient};
+use crate::llm::{LlmClientExt, LlmRequest, LlmResponse};
 
 /// Job ID for processing LLM requests
 pub const PROCESS_LLM_REQUEST_JOB_ID: u32 = 0;

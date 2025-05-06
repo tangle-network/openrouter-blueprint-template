@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["open-router-blueprint-template-lib", "open-router-blueprint-template-bin"]
+members = ["open-router-blueprint-template-lib", "open-router-blueprint-template-bin", "blueprints/ollama-blueprint"]
 
 [workspace.package]
 version = "0.1.0"

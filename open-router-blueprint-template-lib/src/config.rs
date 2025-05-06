@@ -5,7 +5,7 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use tracing::{debug, info, warn};
+use tracing::warn;
 
 use crate::llm::ModelInfo;
 use crate::load_balancer::LoadBalancingStrategy;

@@ -6,7 +6,7 @@ use tracing::info;
 
 use crate::config::BlueprintConfig;
 use crate::llm::{LlmClient, LocalLlmClient, LocalLlmConfig, NodeMetrics};
-use crate::load_balancer::{LoadBalancer, LoadBalancerConfig, LoadBalancingStrategy};
+use crate::load_balancer::{LoadBalancer, LoadBalancerConfig};
 
 /// Context for the OpenRouter Blueprint
 #[derive(Clone)]

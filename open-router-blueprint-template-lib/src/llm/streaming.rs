@@ -1,6 +1,5 @@
 use std::pin::Pin;
-use std::task::{Context, Poll};
-
+// use std::task::{Context, Poll};
 use async_trait::async_trait;
 use futures::stream::{Stream, StreamExt};
 use tokio::sync::mpsc;
@@ -91,21 +90,19 @@ pub type ChatCompletionStream = Pin<Box<dyn Stream<Item = Result<ChatCompletionC
 /// A stream of text completion chunks
 pub type TextCompletionStream = Pin<Box<dyn Stream<Item = Result<TextCompletionChunk>> + Send>>;
 
-/// Extension trait for LLM clients that support streaming
-#[async_trait]
-pub trait StreamingLlmClient: Send + Sync {
-    /// Process a streaming chat completion request
-    async fn streaming_chat_completion(
-        &self,
-        request: ChatCompletionRequest,
-    ) -> Result<ChatCompletionStream>;
+// pub trait StreamingLlmClient: Send + Sync {
+//     /// Process a streaming chat completion request
+//     async fn streaming_chat_completion(
+//         &self,
+//         request: ChatCompletionRequest,
+//     ) -> Result<ChatCompletionStream>;
 
-    /// Process a streaming text completion request
-    async fn streaming_text_completion(
-        &self,
-        request: TextCompletionRequest,
-    ) -> Result<TextCompletionStream>;
-}
+//     /// Process a streaming text completion request
+//     async fn streaming_text_completion(
+//         &self,
+//         request: TextCompletionRequest,
+//     ) -> Result<TextCompletionStream>;
+// }
 
 /// Create a chat completion stream from a channel
 pub fn create_chat_completion_stream(
@@ -125,17 +122,17 @@ pub fn create_text_completion_stream(
 pub async fn collect_chat_completion_stream(
     mut stream: ChatCompletionStream,
 ) -> Result<ChatCompletionResponse> {
-    let mut id = String::new();
-    let mut model = String::new();
-    let mut created = 0;
+    // let mut id = String::new();
+    // let mut model = String::new();
+    // let mut created = 0;
     let mut choices = Vec::new();
 
     // Process the first chunk to get metadata
     if let Some(first_chunk_result) = stream.next().await {
         let first_chunk = first_chunk_result?;
-        id = first_chunk.id;
-        model = first_chunk.model;
-        created = first_chunk.created;
+        // id = first_chunk.id;
+        // model = first_chunk.model;
+        // created = first_chunk.created;
 
         // Initialize choices with empty content
         for choice in first_chunk.choices {
@@ -188,10 +185,10 @@ pub async fn collect_chat_completion_stream(
         .collect();
 
     Ok(ChatCompletionResponse {
-        id,
-        object: "chat.completion".to_string(),
-        created,
-        model,
+        // id,
+        // object: "chat.completion".to_string(),
+        // created,
+        // model,
         choices: response_choices,
         usage: None, // Usage information is not available when streaming
     })
@@ -201,17 +198,17 @@ pub async fn collect_chat_completion_stream(
 pub async fn collect_text_completion_stream(
     mut stream: TextCompletionStream,
 ) -> Result<TextCompletionResponse> {
-    let mut id = String::new();
-    let mut model = String::new();
-    let mut created = 0;
+    // let mut id = String::new();
+    // let mut model = String::new();
+    // let mut created = 0;
     let mut choices = Vec::new();
 
     // Process the first chunk to get metadata
     if let Some(first_chunk_result) = stream.next().await {
         let first_chunk = first_chunk_result?;
-        id = first_chunk.id;
-        model = first_chunk.model;
-        created = first_chunk.created;
+        // id = first_chunk.id;
+        // model = first_chunk.model;
+        // created = first_chunk.created;
 
         // Initialize choices with empty content
         for choice in first_chunk.choices {
@@ -253,10 +250,10 @@ pub async fn collect_text_completion_stream(
         .collect();
 
     Ok(TextCompletionResponse {
-        id,
-        object: "text_completion".to_string(),
-        created,
-        model,
+        // id,
+        // object: "text_completion".to_string(),
+        // created,
+        // model,
         choices: response_choices,
         usage: None, // Usage information is not available when streaming
     })

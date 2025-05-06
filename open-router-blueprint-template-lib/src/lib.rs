@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 // Export our modules
 pub mod config;
 pub mod context;

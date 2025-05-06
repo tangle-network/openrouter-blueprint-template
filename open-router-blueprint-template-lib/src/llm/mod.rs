@@ -34,6 +34,9 @@ pub enum LlmError {
 
     #[error("Internal error: {0}")]
     Internal(String),
+
+    #[error("Not implemented: {0}")]
+    NotImplemented(String),
 }
 
 /// Result type for LLM operations

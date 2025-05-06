@@ -299,21 +299,20 @@ impl LoadBalancer {
             .cloned()
     }
 
-    /// Calculate a score for a node based on its capabilities for a specific model
-    async fn calculate_capability_score_for_model(
-        &self,
-        node_id: &str,
-        model: &str,
-    ) -> Option<f64> {
-        let nodes = self.nodes.read().await;
-        let n = nodes.get(node_id)?;
+    // async fn calculate_capability_score_for_model(
+    //     &self,
+    //     node_id: &str,
+    //     model: &str,
+    // ) -> Option<f64> {
+    //     let nodes = self.nodes.read().await;
+    //     let n = nodes.get(node_id)?;
 
-        // Find the model info
-        let supported_models = n.client.get_supported_models();
-        let model_info = supported_models.iter().find(|m| m.id == model)?;
+    //     // Find the model info
+    //     let supported_models = n.client.get_supported_models();
+    //     let model_info = supported_models.iter().find(|m| m.id == model)?;
 
-        let score = self.calculate_capability_score(n, model_info) as f64;
+    //     let score = self.calculate_capability_score(n, model_info) as f64;
 
-        Some(score)
-    }
+    //     Some(score)
+    // }
 }
