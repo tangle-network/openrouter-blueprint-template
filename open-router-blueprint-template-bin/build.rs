@@ -1,14 +1,10 @@
 use blueprint_sdk::build;
 use blueprint_sdk::tangle::blueprint;
-use open_router_blueprint_template_blueprint_lib::say_hello;
+use open_router_blueprint_template_lib::jobs::process_llm_request;
 use std::path::Path;
 use std::process;
 
 fn main() {
-    // Automatically update dependencies with `soldeer` (if available), and build the contracts.
-    //
-    // Note that this is provided for convenience, and is not necessary if you wish to handle the
-    // contract build step yourself.
     let contracts_dir = Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .unwrap()
@@ -21,13 +17,11 @@ fn main() {
 
     println!("cargo::rerun-if-changed=../open-router-blueprint-template-lib");
 
-    // The `blueprint!` macro generates the info necessary for the `blueprint.json`.
-    // See its docs for all available metadata fields.
     let blueprint = blueprint! {
         name: "open-router-blueprint",
         master_manager_revision: "Latest",
         manager: { Evm = "OpenRouterBlueprint" },
-        jobs: [say_hello]
+        jobs: [process_llm_request]
     };
 
     match blueprint {

@@ -24,11 +24,8 @@ use tracing::{error, info};
 async fn main() -> Result<(), blueprint_sdk::Error> {
     setup_log();
 
-    // Load the blueprint environment
     let env = BlueprintEnvironment::load()?;
-    info!("Blueprint environment loaded");
 
-    // Log configuration information
     if let Some(data_dir) = env.data_dir.as_ref() {
         let config_path = data_dir.join("config.json");
         if config_path.exists() {
@@ -40,7 +37,6 @@ async fn main() -> Result<(), blueprint_sdk::Error> {
         info!("No data directory specified, using environment variables");
     }
 
-    // Set up Tangle client and authentication
     let sr25519_signer = env.keystore().first_local::<SpSr25519>()?;
     let sr25519_pair = env.keystore().get_secret::<SpSr25519>(&sr25519_signer)?;
     let st25519_signer = TanglePairSigner::new(sr25519_pair.0);
@@ -52,27 +48,20 @@ async fn main() -> Result<(), blueprint_sdk::Error> {
 
     let tangle_config = TangleConfig::default();
 
-    // Create the OpenRouter context with the environment
-    // The context will load the configuration from the environment
     info!("Creating OpenRouter context");
     let context = OpenRouterContext::new(env.clone()).await?;
 
-    // Log some configuration details
-    {
-        let config = context.blueprint_config.read().await;
-        info!("LLM API URL: {}", config.llm.api_url);
-        info!(
-            "Load balancer strategy: {:?}",
-            config.load_balancer.strategy
-        );
-        info!("API listening on {}:{}", config.api.host, config.api.port);
-    }
+    let config = context.blueprint_config.read().await;
+    info!("LLM API URL: {}", config.llm.api_url);
+    info!(
+        "Load balancer strategy: {:?}",
+        config.load_balancer.strategy
+    );
+    info!("API listening on {}:{}", config.api.host, config.api.port);
 
-    // Set up the service ID for Tangle
     let service_id = env.protocol_settings.tangle()?.service_id.unwrap();
     info!("Using Tangle service ID: {}", service_id);
 
-    // Set up metrics reporting interval from configuration
     let metrics_interval = {
         let config = context.blueprint_config.read().await;
         Duration::from_secs(config.api.metrics_interval_seconds)
@@ -82,20 +71,12 @@ async fn main() -> Result<(), blueprint_sdk::Error> {
         metrics_interval.as_secs()
     );
 
-    // Build and run the blueprint
     let result = BlueprintRunner::builder(tangle_config, env)
         .router(
             Router::new()
-                // Add the LLM request processing job
-                .route(
-                    PROCESS_LLM_REQUEST_JOB_ID,
-                    process_llm_request.layer(TangleLayer),
-                )
-                // Add the metrics reporting job
+                .route(PROCESS_LLM_REQUEST_JOB_ID, process_llm_request.layer(TangleLayer))
                 .route(REPORT_METRICS_JOB_ID, report_metrics.layer(TangleLayer))
-                // Add the service ID filter
                 .layer(FilterLayer::new(MatchesServiceId(service_id)))
-                // Add the context
                 .with_context(context),
         )
         .producer(tangle_producer)
