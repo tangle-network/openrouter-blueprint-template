@@ -7,10 +7,12 @@ use tracing::info;
 use crate::config::BlueprintConfig;
 use crate::llm::{LlmClient, LocalLlmClient, LocalLlmConfig, NodeMetrics};
 use crate::load_balancer::{LoadBalancer, LoadBalancerConfig};
+use blueprint_sdk::macros::context::{KeystoreContext, ServicesContext, TangleClientContext};
 
 /// Context for the OpenRouter Blueprint
-#[derive(Clone)]
+#[derive(Clone, KeystoreContext, TangleClientContext, ServicesContext)]
 pub struct OpenRouterContext {
+    #[config]
     /// Blueprint environment configuration
     pub env: BlueprintEnvironment,
 

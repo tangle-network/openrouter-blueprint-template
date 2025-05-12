@@ -45,6 +45,20 @@ pub struct ChatCompletionRequest {
     pub additional_params: HashMap<String, serde_json::Value>,
 }
 
+impl Default for ChatCompletionRequest {
+    fn default() -> Self {
+        Self {
+            model: String::new(),
+            messages: Vec::new(),
+            max_tokens: None,
+            temperature: None,
+            top_p: None,
+            stream: None,
+            additional_params: HashMap::new(),
+        }
+    }
+}
+
 /// A chat completion choice
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChatCompletionChoice {
@@ -110,6 +124,20 @@ pub struct TextCompletionRequest {
     pub additional_params: HashMap<String, serde_json::Value>,
 }
 
+impl Default for TextCompletionRequest {
+    fn default() -> Self {
+        Self {
+            model: String::new(),
+            prompt: String::new(),
+            max_tokens: None,
+            temperature: None,
+            top_p: None,
+            stream: None,
+            additional_params: HashMap::new(),
+        }
+    }
+}
+
 /// A text completion choice
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TextCompletionChoice {
@@ -157,6 +185,16 @@ pub struct EmbeddingRequest {
     /// Additional model-specific parameters
     #[serde(skip_serializing_if = "HashMap::is_empty")]
     pub additional_params: HashMap<String, serde_json::Value>,
+}
+
+impl Default for EmbeddingRequest {
+    fn default() -> Self {
+        Self {
+            model: String::new(),
+            input: Vec::new(),
+            additional_params: HashMap::new(),
+        }
+    }
 }
 
 /// A single embedding result
@@ -210,6 +248,12 @@ pub enum LlmRequest {
 
     #[serde(rename = "embedding")]
     Embedding(EmbeddingRequest),
+}
+
+impl Default for LlmRequest {
+    fn default() -> Self {
+        Self::ChatCompletion(ChatCompletionRequest::default())
+    }
 }
 
 /// A unified response type that can represent any LLM operation result

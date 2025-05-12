@@ -3,6 +3,7 @@ use blueprint_sdk::tangle::serde::to_field;
 use blueprint_sdk::testing::tempfile;
 use blueprint_sdk::testing::utils::setup_log;
 use blueprint_sdk::testing::utils::tangle::TangleTestHarness;
+use blueprint_sdk::Job;
 use open_router_blueprint_template_lib::{
     process_llm_request, OpenRouterContext, PROCESS_LLM_REQUEST_JOB_ID,
 };
@@ -23,7 +24,7 @@ async fn test_blueprint() -> color_eyre::Result<()> {
 
     test_env.initialize().await?;
     test_env
-        .add_job(PROCESS_LLM_REQUEST_JOB_ID.layer(TangleLayer))
+        .add_job(process_llm_request.layer(TangleLayer))
         .await;
 
     test_env.start(context).await?;

@@ -43,6 +43,7 @@ pub enum LlmError {
 pub type Result<T> = std::result::Result<T, LlmError>;
 
 /// Trait for LLM clients
+#[allow(async_fn_in_trait)]
 #[async_trait]
 pub trait LlmClient: Send + Sync {
     /// Get information about the supported models
@@ -137,6 +138,7 @@ pub struct NodeMetrics {
 }
 
 /// Trait for LLM clients that support streaming responses
+#[allow(async_fn_in_trait)]
 #[async_trait::async_trait]
 pub trait StreamingLlmClient: LlmClient {
     /// Process a streaming chat completion request
@@ -153,6 +155,7 @@ pub trait StreamingLlmClient: LlmClient {
 }
 
 /// Extension trait for checking if an LlmClient also implements StreamingLlmClient
+#[allow(async_fn_in_trait)]
 pub trait LlmClientExt {
     /// Check if this client supports streaming
     fn supports_streaming(&self) -> bool;

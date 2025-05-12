@@ -6,10 +6,10 @@ use crate::context::OpenRouterContext;
 use crate::llm::{LlmClientExt, LlmRequest, LlmResponse};
 
 /// Job ID for processing LLM requests
-pub const PROCESS_LLM_REQUEST_JOB_ID: u32 = 0;
+pub const PROCESS_LLM_REQUEST_JOB_ID: u8 = 0;
 
 /// Job ID for reporting metrics
-pub const REPORT_METRICS_JOB_ID: u32 = 1;
+pub const REPORT_METRICS_JOB_ID: u8 = 1;
 
 /// Process an LLM request
 ///

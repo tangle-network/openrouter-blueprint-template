@@ -57,7 +57,7 @@ async fn test_process_chat_completion_request() -> color_eyre::Result<()> {
     let result = process_llm_request(Context(context), TangleArg(llm_request)).await?;
 
     // Convert the result to a JobResult
-    let job_result = result.into_job_result()?;
+    let job_result = result.into_job_result().unwrap();
 
     // Verify that the job was successful
     match job_result {
@@ -100,7 +100,7 @@ async fn test_process_text_completion_request() -> color_eyre::Result<()> {
     let result = process_llm_request(Context(context), TangleArg(llm_request)).await?;
 
     // Convert the result to a JobResult
-    let job_result = result.into_job_result()?;
+    let job_result = result.into_job_result().unwrap();
 
     // Verify that the job was successful
     match job_result {
@@ -139,7 +139,7 @@ async fn test_process_embedding_request() -> color_eyre::Result<()> {
     let result = process_llm_request(Context(context), TangleArg(llm_request)).await?;
 
     // Convert the result to a JobResult
-    let job_result = result.into_job_result()?;
+    let job_result = result.into_job_result().unwrap();
 
     // Verify that the job was successful
     match job_result {

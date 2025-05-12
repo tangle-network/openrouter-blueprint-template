@@ -1,13 +1,13 @@
 use std::pin::Pin;
 // use std::task::{Context, Poll};
-use async_trait::async_trait;
+// Removed unused import: async_trait::async_trait
 use futures::stream::{Stream, StreamExt};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 
 use super::{
-    ChatCompletionChoice, ChatCompletionRequest, ChatCompletionResponse, ChatMessage, LlmError,
-    Result, TextCompletionChoice, TextCompletionRequest, TextCompletionResponse,
+    ChatCompletionChoice, ChatCompletionResponse, ChatMessage, LlmError, Result,
+    TextCompletionChoice, TextCompletionResponse,
 };
 
 /// A chunk of a streaming chat completion response
@@ -185,10 +185,13 @@ pub async fn collect_chat_completion_stream(
         .collect();
 
     Ok(ChatCompletionResponse {
-        // id,
-        // object: "chat.completion".to_string(),
-        // created,
-        // model,
+        id: "stream-collected".to_string(),
+        object: "chat.completion".to_string(),
+        created: std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs(),
+        model: "unknown".to_string(),
         choices: response_choices,
         usage: None, // Usage information is not available when streaming
     })
@@ -250,10 +253,13 @@ pub async fn collect_text_completion_stream(
         .collect();
 
     Ok(TextCompletionResponse {
-        // id,
-        // object: "text_completion".to_string(),
-        // created,
-        // model,
+        id: "stream-collected".to_string(),
+        object: "text_completion".to_string(),
+        created: std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs(),
+        model: "unknown".to_string(),
         choices: response_choices,
         usage: None, // Usage information is not available when streaming
     })

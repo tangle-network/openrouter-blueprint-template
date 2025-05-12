@@ -150,15 +150,13 @@ impl LlmClient for LocalLlmClient {
     }
 
     /// Template method for embeddings. To use, override this method in your concrete blueprint.
-    async fn embeddings(
-        &self,
-        request: EmbeddingRequest,
-    ) -> Result<EmbeddingResponse> {
+    async fn embeddings(&self, request: EmbeddingRequest) -> Result<EmbeddingResponse> {
         if !self.config.models.iter().any(|m| m.id == request.model) {
             return Err(LlmError::ModelNotSupported(request.model));
         }
         Err(LlmError::NotImplemented(
-            "embeddings must be implemented in your blueprint (see LocalLlmClient in template)".to_string(),
+            "embeddings must be implemented in your blueprint (see LocalLlmClient in template)"
+                .to_string(),
         ))
     }
 }

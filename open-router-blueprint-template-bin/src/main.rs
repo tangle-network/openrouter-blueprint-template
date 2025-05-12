@@ -74,7 +74,10 @@ async fn main() -> Result<(), blueprint_sdk::Error> {
     let result = BlueprintRunner::builder(tangle_config, env)
         .router(
             Router::new()
-                .route(PROCESS_LLM_REQUEST_JOB_ID, process_llm_request.layer(TangleLayer))
+                .route(
+                    PROCESS_LLM_REQUEST_JOB_ID,
+                    process_llm_request.layer(TangleLayer),
+                )
                 .route(REPORT_METRICS_JOB_ID, report_metrics.layer(TangleLayer))
                 .layer(FilterLayer::new(MatchesServiceId(service_id)))
                 .with_context(context),
