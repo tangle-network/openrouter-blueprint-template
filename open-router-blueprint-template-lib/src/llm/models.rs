@@ -94,6 +94,19 @@ pub struct ChatCompletionResponse {
     pub usage: Option<UsageInfo>,
 }
 
+impl Default for ChatCompletionResponse {
+    fn default() -> Self {
+        Self {
+            id: String::new(),
+            object: String::new(),
+            created: 0,
+            model: String::new(),
+            choices: Vec::new(),
+            usage: None,
+        }
+    }
+}
+
 /// Request for a text completion
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TextCompletionRequest {
@@ -173,6 +186,19 @@ pub struct TextCompletionResponse {
     pub usage: Option<UsageInfo>,
 }
 
+impl Default for TextCompletionResponse {
+    fn default() -> Self {
+        Self {
+            id: String::new(),
+            object: String::new(),
+            created: 0,
+            model: String::new(),
+            choices: Vec::new(),
+            usage: None,
+        }
+    }
+}
+
 /// Request for generating embeddings
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmbeddingRequest {
@@ -223,6 +249,17 @@ pub struct EmbeddingResponse {
     pub usage: Option<UsageInfo>,
 }
 
+impl Default for EmbeddingResponse {
+    fn default() -> Self {
+        Self {
+            object: String::new(),
+            model: String::new(),
+            data: Vec::new(),
+            usage: None,
+        }
+    }
+}
+
 /// Usage information for an LLM request
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UsageInfo {
@@ -268,4 +305,10 @@ pub enum LlmResponse {
 
     #[serde(rename = "embedding")]
     Embedding(EmbeddingResponse),
+}
+
+impl Default for LlmResponse {
+    fn default() -> Self {
+        Self::ChatCompletion(ChatCompletionResponse::default())
+    }
 }

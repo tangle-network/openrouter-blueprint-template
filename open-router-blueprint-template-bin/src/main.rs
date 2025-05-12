@@ -11,8 +11,8 @@ use blueprint_sdk::tangle::consumer::TangleConsumer;
 use blueprint_sdk::tangle::filters::MatchesServiceId;
 use blueprint_sdk::tangle::layers::TangleLayer;
 use blueprint_sdk::tangle::producer::TangleProducer;
-use open_router_blueprint_template_lib::{
-    BlueprintConfig, OpenRouterContext, PROCESS_LLM_REQUEST_JOB_ID, REPORT_METRICS_JOB_ID,
+use open_router_blueprint_template_lib::{ 
+    OpenRouterContext, PROCESS_LLM_REQUEST_JOB_ID, REPORT_METRICS_JOB_ID,
     process_llm_request, report_metrics,
 };
 use std::time::Duration;
@@ -80,7 +80,7 @@ async fn main() -> Result<(), blueprint_sdk::Error> {
                 )
                 .route(REPORT_METRICS_JOB_ID, report_metrics.layer(TangleLayer))
                 .layer(FilterLayer::new(MatchesServiceId(service_id)))
-                .with_context(context),
+                .with_context(context.clone()),
         )
         .producer(tangle_producer)
         .consumer(tangle_consumer)
