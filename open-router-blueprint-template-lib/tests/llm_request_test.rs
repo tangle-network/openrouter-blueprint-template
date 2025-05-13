@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use blueprint_sdk::runner::config::BlueprintEnvironment;
 use blueprint_sdk::tangle::extract::TangleArg;
+use blueprint_sdk::testing::utils::setup_log;
 use blueprint_sdk::{extract::Context, IntoJobResult, JobResult};
 use open_router_blueprint_template_lib::{
     context::OpenRouterContext,
@@ -15,6 +16,8 @@ use open_router_blueprint_template_lib::{
 /// Test that verifies the LLM request processing job can handle chat completion requests
 #[tokio::test]
 async fn test_process_chat_completion_request() -> color_eyre::Result<()> {
+    setup_log();
+
     // Create a mock environment
     let env = BlueprintEnvironment::default();
 
@@ -69,6 +72,8 @@ async fn test_process_chat_completion_request() -> color_eyre::Result<()> {
 /// Test that verifies the LLM request processing job can handle text completion requests
 #[tokio::test]
 async fn test_process_text_completion_request() -> color_eyre::Result<()> {
+    setup_log();
+
     // Create a mock environment
     let env = BlueprintEnvironment::default();
 
@@ -112,6 +117,8 @@ async fn test_process_text_completion_request() -> color_eyre::Result<()> {
 /// Test that verifies the LLM request processing job can handle embedding requests
 #[tokio::test]
 async fn test_process_embedding_request() -> color_eyre::Result<()> {
+    setup_log();
+
     // Create a mock environment
     let env = BlueprintEnvironment::default();
 

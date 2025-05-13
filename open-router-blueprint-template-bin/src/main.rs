@@ -11,9 +11,9 @@ use blueprint_sdk::tangle::consumer::TangleConsumer;
 use blueprint_sdk::tangle::filters::MatchesServiceId;
 use blueprint_sdk::tangle::layers::TangleLayer;
 use blueprint_sdk::tangle::producer::TangleProducer;
-use open_router_blueprint_template_lib::{ 
-    OpenRouterContext, PROCESS_LLM_REQUEST_JOB_ID, REPORT_METRICS_JOB_ID,
-    process_llm_request, report_metrics,
+use open_router_blueprint_template_lib::{
+    OpenRouterContext, PROCESS_LLM_REQUEST_JOB_ID, REPORT_METRICS_JOB_ID, process_llm_request,
+    report_metrics,
 };
 use std::time::Duration;
 use tower::filter::FilterLayer;
