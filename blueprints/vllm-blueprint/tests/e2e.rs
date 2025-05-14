@@ -15,7 +15,7 @@ async fn test_vllm_client_creation() {
 async fn test_vllm_capabilities() {
     let client = VllmLlmClient::new("http://localhost:8000".to_string(), "llama3".to_string());
     let capabilities = client.get_capabilities();
-    
+
     assert!(capabilities.supports_streaming);
     assert_eq!(capabilities.max_concurrent_requests, 4);
     assert!(capabilities.supports_batching);
@@ -29,7 +29,7 @@ async fn test_vllm_capabilities() {
 async fn test_vllm_models() {
     let client = VllmLlmClient::new("http://localhost:8000".to_string(), "llama3".to_string());
     let models = client.get_supported_models();
-    
+
     // This test assumes that the model "llama3" is available in the vLLM server
     assert!(!models.is_empty());
     assert_eq!(models[0].id, "llama3");
@@ -39,7 +39,7 @@ async fn test_vllm_models() {
 #[ignore]
 async fn test_vllm_chat_completion() {
     let client = VllmLlmClient::new("http://localhost:8000".to_string(), "llama3".to_string());
-    
+
     let request = ChatCompletionRequest {
         model: "llama3".to_string(),
         messages: vec![ChatMessage {
@@ -53,9 +53,9 @@ async fn test_vllm_chat_completion() {
         stream: None,
         additional_params: Default::default(),
     };
-    
+
     let response = client.chat_completion(request).await;
-    
+
     // This test assumes that the model "llama3" is available in the vLLM server
     assert!(response.is_ok());
     let completion = response.unwrap();
@@ -67,7 +67,7 @@ async fn test_vllm_chat_completion() {
 #[ignore]
 async fn test_vllm_text_completion() {
     let client = VllmLlmClient::new("http://localhost:8000".to_string(), "llama3".to_string());
-    
+
     let request = TextCompletionRequest {
         model: "llama3".to_string(),
         prompt: "Once upon a time".to_string(),
@@ -77,9 +77,9 @@ async fn test_vllm_text_completion() {
         stream: None,
         additional_params: Default::default(),
     };
-    
+
     let response = client.text_completion(request).await;
-    
+
     // This test assumes that the model "llama3" is available in the vLLM server
     assert!(response.is_ok());
     let completion = response.unwrap();
@@ -91,15 +91,15 @@ async fn test_vllm_text_completion() {
 #[ignore]
 async fn test_vllm_embeddings_not_implemented() {
     let client = VllmLlmClient::new("http://localhost:8000".to_string(), "llama3".to_string());
-    
+
     let request = open_router_blueprint_template_lib::llm::EmbeddingRequest {
         model: "llama3".to_string(),
         input: vec!["Hello, world!".to_string()],
         additional_params: Default::default(),
     };
-    
+
     let response = client.embeddings(request).await;
-    
+
     // Embeddings are not implemented in this example
     assert!(response.is_err());
     match response {
@@ -111,8 +111,11 @@ async fn test_vllm_embeddings_not_implemented() {
 #[tokio::test]
 #[ignore]
 async fn test_vllm_invalid_model() {
-    let client = VllmLlmClient::new("http://localhost:8000".to_string(), "invalid-model".to_string());
-    
+    let client = VllmLlmClient::new(
+        "http://localhost:8000".to_string(),
+        "invalid-model".to_string(),
+    );
+
     let request = ChatCompletionRequest {
         model: "invalid-model".to_string(),
         messages: vec![ChatMessage {
@@ -126,9 +129,9 @@ async fn test_vllm_invalid_model() {
         stream: None,
         additional_params: Default::default(),
     };
-    
+
     let response = client.chat_completion(request).await;
-    
+
     // This test assumes that the model "invalid-model" is not available in the vLLM server
     assert!(response.is_err());
     match response {
@@ -141,7 +144,7 @@ async fn test_vllm_invalid_model() {
 #[ignore]
 async fn test_vllm_server_unavailable() {
     let client = VllmLlmClient::new("http://localhost:9999".to_string(), "llama3".to_string());
-    
+
     let request = ChatCompletionRequest {
         model: "llama3".to_string(),
         messages: vec![ChatMessage {
@@ -155,9 +158,9 @@ async fn test_vllm_server_unavailable() {
         stream: None,
         additional_params: Default::default(),
     };
-    
+
     let response = client.chat_completion(request).await;
-    
+
     // This test assumes that there is no server running on port 9999
     assert!(response.is_err());
     match response {

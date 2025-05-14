@@ -101,9 +101,9 @@ impl LlmClient for VllmLlmClient {
 
     fn get_capabilities(&self) -> open_router_blueprint_template_lib::llm::LlmCapabilities {
         open_router_blueprint_template_lib::llm::LlmCapabilities {
-            supports_streaming: true, // vLLM supports streaming
+            supports_streaming: true,   // vLLM supports streaming
             max_concurrent_requests: 4, // vLLM can handle multiple concurrent requests
-            supports_batching: true,   // vLLM supports batching
+            supports_batching: true,    // vLLM supports batching
             features: Default::default(),
         }
     }
@@ -182,12 +182,7 @@ impl LlmClient for VllmLlmClient {
         let url = format!("{}/v1/chat/completions", self.api_url);
         debug!("Sending chat completion request to {}", url);
 
-        let res = self
-            .http_client
-            .post(&url)
-            .json(&vllm_request)
-            .send()
-            .await;
+        let res = self.http_client.post(&url).json(&vllm_request).send().await;
 
         // Parse response
         let response = match res {
@@ -233,11 +228,12 @@ impl LlmClient for VllmLlmClient {
                                 .map(|c| {
                                     open_router_blueprint_template_lib::llm::ChatCompletionChoice {
                                         index: c.index,
-                                        message: open_router_blueprint_template_lib::llm::ChatMessage {
-                                            role: c.message.role,
-                                            content: c.message.content,
-                                            name: c.message.name,
-                                        },
+                                        message:
+                                            open_router_blueprint_template_lib::llm::ChatMessage {
+                                                role: c.message.role,
+                                                content: c.message.content,
+                                                name: c.message.name,
+                                            },
                                         finish_reason: c.finish_reason,
                                     }
                                 })
@@ -368,44 +364,40 @@ impl LlmClient for VllmLlmClient {
         let url = format!("{}/v1/completions", self.api_url);
         debug!("Sending text completion request to {}", url);
 
-        let res = self
-            .http_client
-            .post(&url)
-            .json(&vllm_request)
-            .send()
-            .await;
+        let res = self.http_client.post(&url).json(&vllm_request).send().await;
 
         // Parse response
-        let response = match res {
-            Ok(resp) => {
-                if resp.status().is_success() {
-                    #[derive(Deserialize)]
-                    struct VllmCompletionChoice {
-                        index: usize,
-                        text: String,
-                        finish_reason: Option<String>,
-                    }
+        let response =
+            match res {
+                Ok(resp) => {
+                    if resp.status().is_success() {
+                        #[derive(Deserialize)]
+                        struct VllmCompletionChoice {
+                            index: usize,
+                            text: String,
+                            finish_reason: Option<String>,
+                        }
 
-                    #[derive(Deserialize)]
-                    struct VllmUsage {
-                        prompt_tokens: u32,
-                        completion_tokens: u32,
-                        total_tokens: u32,
-                    }
+                        #[derive(Deserialize)]
+                        struct VllmUsage {
+                            prompt_tokens: u32,
+                            completion_tokens: u32,
+                            total_tokens: u32,
+                        }
 
-                    #[derive(Deserialize)]
-                    struct VllmCompletionResponse {
-                        id: String,
-                        object: String,
-                        created: u64,
-                        model: String,
-                        choices: Vec<VllmCompletionChoice>,
-                        usage: Option<VllmUsage>,
-                    }
+                        #[derive(Deserialize)]
+                        struct VllmCompletionResponse {
+                            id: String,
+                            object: String,
+                            created: u64,
+                            model: String,
+                            choices: Vec<VllmCompletionChoice>,
+                            usage: Option<VllmUsage>,
+                        }
 
-                    match resp.json::<VllmCompletionResponse>().await {
-                        Ok(vllm_resp) => {
-                            let choices = vllm_resp
+                        match resp.json::<VllmCompletionResponse>().await {
+                            Ok(vllm_resp) => {
+                                let choices = vllm_resp
                                 .choices
                                 .into_iter()
                                 .map(|c| {
@@ -417,15 +409,15 @@ impl LlmClient for VllmLlmClient {
                                 })
                                 .collect();
 
-                            let usage = vllm_resp.usage.map(|u| {
-                                open_router_blueprint_template_lib::llm::UsageInfo {
-                                    prompt_tokens: u.prompt_tokens,
-                                    completion_tokens: u.completion_tokens,
-                                    total_tokens: u.total_tokens,
-                                }
-                            });
+                                let usage = vllm_resp.usage.map(|u| {
+                                    open_router_blueprint_template_lib::llm::UsageInfo {
+                                        prompt_tokens: u.prompt_tokens,
+                                        completion_tokens: u.completion_tokens,
+                                        total_tokens: u.total_tokens,
+                                    }
+                                });
 
-                            Ok(open_router_blueprint_template_lib::llm::TextCompletionResponse {
+                                Ok(open_router_blueprint_template_lib::llm::TextCompletionResponse {
                                 id: vllm_resp.id,
                                 object: vllm_resp.object,
                                 created: vllm_resp.created,
@@ -433,58 +425,58 @@ impl LlmClient for VllmLlmClient {
                                 choices,
                                 usage,
                             })
+                            }
+                            Err(e) => {
+                                error!("Failed to parse vLLM response: {}", e);
+                                Err(LlmError::RequestFailed(format!(
+                                    "Failed to parse vLLM response: {}",
+                                    e
+                                )))
+                            }
                         }
-                        Err(e) => {
-                            error!("Failed to parse vLLM response: {}", e);
-                            Err(LlmError::RequestFailed(format!(
-                                "Failed to parse vLLM response: {}",
-                                e
-                            )))
+                    } else {
+                        // Try to parse error response
+                        #[derive(Deserialize)]
+                        struct VllmErrorResponse {
+                            error: VllmError,
                         }
-                    }
-                } else {
-                    // Try to parse error response
-                    #[derive(Deserialize)]
-                    struct VllmErrorResponse {
-                        error: VllmError,
-                    }
 
-                    #[derive(Deserialize)]
-                    struct VllmError {
-                        message: String,
-                        #[serde(rename = "type")]
-                        error_type: String,
-                    }
-
-                    match resp.json::<VllmErrorResponse>().await {
-                        Ok(error_resp) => {
-                            error!(
-                                "vLLM API error: {} ({})",
-                                error_resp.error.message, error_resp.error.error_type
-                            );
-                            Err(LlmError::RequestFailed(format!(
-                                "vLLM API error: {} ({})",
-                                error_resp.error.message, error_resp.error.error_type
-                            )))
+                        #[derive(Deserialize)]
+                        struct VllmError {
+                            message: String,
+                            #[serde(rename = "type")]
+                            error_type: String,
                         }
-                        Err(_) => {
-                            error!("vLLM API error: {}", resp.status());
-                            Err(LlmError::RequestFailed(format!(
-                                "vLLM API error: {}",
-                                resp.status()
-                            )))
+
+                        match resp.json::<VllmErrorResponse>().await {
+                            Ok(error_resp) => {
+                                error!(
+                                    "vLLM API error: {} ({})",
+                                    error_resp.error.message, error_resp.error.error_type
+                                );
+                                Err(LlmError::RequestFailed(format!(
+                                    "vLLM API error: {} ({})",
+                                    error_resp.error.message, error_resp.error.error_type
+                                )))
+                            }
+                            Err(_) => {
+                                error!("vLLM API error: {}", resp.status());
+                                Err(LlmError::RequestFailed(format!(
+                                    "vLLM API error: {}",
+                                    resp.status()
+                                )))
+                            }
                         }
                     }
                 }
-            }
-            Err(e) => {
-                error!("Failed to send request to vLLM API: {}", e);
-                Err(LlmError::RequestFailed(format!(
-                    "Failed to send request to vLLM API: {}",
-                    e
-                )))
-            }
-        };
+                Err(e) => {
+                    error!("Failed to send request to vLLM API: {}", e);
+                    Err(LlmError::RequestFailed(format!(
+                        "Failed to send request to vLLM API: {}",
+                        e
+                    )))
+                }
+            };
 
         info!("Completed text completion request");
         response
@@ -495,7 +487,7 @@ impl LlmClient for VllmLlmClient {
         request: open_router_blueprint_template_lib::llm::EmbeddingRequest,
     ) -> Result<open_router_blueprint_template_lib::llm::EmbeddingResponse, LlmError> {
         info!("Processing embedding request for model: {}", request.model);
-        
+
         // Check if the requested model is supported
         let supported_models = self.get_supported_models();
         let model_supported = supported_models.iter().any(|m| m.id == request.model);

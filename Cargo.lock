@@ -9678,10 +9678,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "open-router-blueprint-template"
-version = "0.1.0"
-
-[[package]]
 name = "open-router-blueprint-template-blueprint-bin"
 version = "0.1.0"
 dependencies = [
