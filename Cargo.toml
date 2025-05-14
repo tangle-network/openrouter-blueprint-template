@@ -1,12 +1,22 @@
 [workspace]
 resolver = "2"
-members = ["open-router-blueprint-template-lib", "open-router-blueprint-template-bin", "blueprints/ollama-blueprint"]
+members = ["open-router-blueprint-template-lib", "open-router-blueprint-template-bin", "blueprints/ollama-blueprint", "blueprints/vllm-blueprint"]
+
+# [package]
+# name = "open-router-blueprint-template"
+# version = "0.1.0"
+# description = "A Blueprint Template for using Open Router with a local LLM"
+# edition = "2024"
+# license = "MIT OR Apache-2.0"
+
+# [lib]
+# name = "open_router_blueprint_template"
+# path = "open-router-blueprint-template-lib/src/lib.rs"
 
 [workspace.package]
 version = "0.1.0"
 description = "A Blueprint Template for using Open Router with a local LLM"
 edition = "2024"
-authors = ["Tjemmmic <mdtjemmes@proton.me>"]
 license = "MIT OR Apache-2.0"
 homepage = "https://tangle.tools"
 repository = "https://github.com/Tangle/open-router-blueprint-template"
@@ -17,7 +27,7 @@ keywords = ["tangle", "blueprint", "avs"]
 [workspace.dependencies]
 open-router-blueprint-template-lib = { path = "open-router-blueprint-template-lib" }
 
-blueprint-sdk = { version = "0.1.0-alpha.6", default-features = false }
+blueprint-sdk = { version = "0.1.0-alpha.11", default-features = false }
 tokio = { version = "1", default-features = false }
 color-eyre = "0.6"
 tower = { version = "0.5", default-features = false }

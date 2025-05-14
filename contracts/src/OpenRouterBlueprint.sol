@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: UNLICENSE
-pragma solidity >=0.8.13;
+pragma solidity ^0.8.20;
 
 import "tnt-core/BlueprintServiceManagerBase.sol";
 
 /**
- * @title HelloBlueprint
+ * @title OpenRouterBlueprint
  * @dev This contract is an example of a service blueprint that provides a single service.
  * @dev For all supported hooks, check the `BlueprintServiceManagerBase` contract.
  */
-contract HelloBlueprint is BlueprintServiceManagerBase {
+contract OpenRouterBlueprint is BlueprintServiceManagerBase {
     /**
      * @dev Hook for service operator registration. Called when a service operator
      * attempts to register with the blueprint.
