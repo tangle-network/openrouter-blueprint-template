@@ -26,6 +26,7 @@ pub const REPORT_METRICS_JOB_ID: u8 = 1;
 ///
 /// # Expected Outcome
 /// The request is processed by the selected LLM node and the response is returned to Tangle.
+#[blueprint_sdk::macros::debug_job]
 pub async fn process_llm_request(
     Context(ctx): Context<OpenRouterContext>,
     TangleArg(request): TangleArg<LlmRequest>,
@@ -190,6 +191,7 @@ pub async fn process_llm_request(
 ///
 /// # Expected Outcome
 /// The current metrics for this node are reported back to Tangle.
+#[blueprint_sdk::macros::debug_job]
 pub async fn report_metrics(
     Context(ctx): Context<OpenRouterContext>,
 ) -> Result<TangleResult<crate::llm::NodeMetrics>, blueprint_sdk::Error> {

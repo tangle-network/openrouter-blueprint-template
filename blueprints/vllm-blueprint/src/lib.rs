@@ -1,6 +1,3 @@
-//! vLLM Blueprint: Implements the generic LLM client for vLLM via REST API.
-//! This crate depends on the open-router-blueprint-template-lib for all core traits and types.
-
 use async_trait::async_trait;
 use open_router_blueprint_template_lib::llm::{
     ChatCompletionRequest, ChatCompletionResponse, LlmClient, LlmError, ModelInfo, NodeMetrics,

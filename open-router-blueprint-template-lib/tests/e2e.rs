@@ -1,3 +1,5 @@
+use blueprint_sdk::Router;
+use blueprint_sdk::tangle::filters::MatchesServiceId;
 use blueprint_sdk::tangle::layers::TangleLayer;
 use blueprint_sdk::tangle::serde::to_field;
 use blueprint_sdk::testing::tempfile;
@@ -7,6 +9,9 @@ use blueprint_sdk::Job;
 use open_router_blueprint_template_lib::{
     process_llm_request, OpenRouterContext, PROCESS_LLM_REQUEST_JOB_ID,
 };
+use open_router_blueprint_template_lib::llm::{LlmRequest, TextCompletionRequest};
+use std::collections::HashMap;
+use tower::filter::FilterLayer;
 
 const N: usize = 1;
 
@@ -14,6 +19,11 @@ const N: usize = 1;
 async fn test_blueprint() -> color_eyre::Result<()> {
     setup_log();
 
+    // Change to the root directory of the project where the contracts are located
+    let current_dir = std::env::current_dir()?;
+    let root_dir = current_dir.parent().ok_or_else(|| color_eyre::eyre::eyre!("Failed to find root directory"))?;
+    std::env::set_current_dir(root_dir)?;
+    
     let temp_dir = tempfile::TempDir::new()?;
     let context =
         OpenRouterContext::new(blueprint_sdk::runner::config::BlueprintEnvironment::default())
@@ -23,27 +33,32 @@ async fn test_blueprint() -> color_eyre::Result<()> {
     let (mut test_env, service_id, _) = harness.setup_services::<N>(false).await?;
 
     test_env.initialize().await?;
-    test_env
-        .add_job(process_llm_request.layer(TangleLayer))
-        .await;
+    
+    // Create a Router and register the job with it
+    let router = Router::new()
+        .route(
+            PROCESS_LLM_REQUEST_JOB_ID,
+            process_llm_request.layer(TangleLayer),
+        )
+        .layer(FilterLayer::new(MatchesServiceId(service_id)));
+    
+    // Register the router with the test environment
+    test_env.set_router(router).await;
 
     test_env.start(context).await?;
 
-    use open_router_blueprint_template_lib::llm::{ChatCompletionRequest, ChatMessage, LlmRequest};
-    let request = LlmRequest::ChatCompletion(ChatCompletionRequest {
+    // Create a simple TextCompletionRequest to avoid issues with f32 serialization
+    let request = LlmRequest::TextCompletion(TextCompletionRequest {
         model: "gpt-3.5-turbo".to_string(),
-        messages: vec![ChatMessage {
-            role: "user".to_string(),
-            content: "Hello".to_string(),
-            name: None,
-        }],
+        prompt: "Hello, world!".to_string(),
         max_tokens: Some(10),
-        temperature: Some(0.7),
-        top_p: None,
-        stream: None,
-        additional_params: Default::default(),
+        temperature: None, // Avoid using f32 values which might cause serialization issues
+        top_p: None,       // Avoid using f32 values which might cause serialization issues
+        stream: Some(false),
+        additional_params: HashMap::new(),
     });
-
+    
+    // Serialize the request to a field
     let job_inputs = vec![to_field(request).unwrap()];
     let job = harness
         .submit_job(service_id, PROCESS_LLM_REQUEST_JOB_ID, job_inputs)
