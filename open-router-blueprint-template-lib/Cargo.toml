@@ -17,7 +17,7 @@ uuid = { workspace = true }
 futures = { workspace = true }
 tracing = { workspace = true }
 tokio-stream = { version = "0.1" }
-tempfile = "3.10.1"
+tempfile = "3.20.0"
 
 [dev-dependencies]
 blueprint-sdk = { workspace = true, features = ["testing", "tangle"] }
