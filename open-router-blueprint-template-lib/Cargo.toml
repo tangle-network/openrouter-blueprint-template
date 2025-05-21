@@ -21,5 +21,7 @@ tempfile = "3.10.1"
 
 [dev-dependencies]
 blueprint-sdk = { workspace = true, features = ["testing", "tangle"] }
-tokio = { workspace = true, features = ["macros"] }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 color-eyre = { workspace = true }
+hyper = { version = "0.14", features = ["server", "http1", "tcp"] }
+tower = { workspace = true }

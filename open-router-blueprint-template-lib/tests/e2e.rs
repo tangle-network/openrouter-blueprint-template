@@ -45,7 +45,7 @@ async fn test_blueprint() -> color_eyre::Result<()> {
         .layer(FilterLayer::new(MatchesServiceId(service_id)));
 
     // Register the router with the test environment
-    test_env.set_router(router).await;
+    // test_env.set_router(router).await;
 
     test_env.start(context).await?;
 
