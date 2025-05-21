@@ -278,6 +278,7 @@ impl LlmClient for VllmLlmClient {
                         error_type: String,
                     }
 
+                    let status = resp.status();
                     match resp.json::<VllmErrorResponse>().await {
                         Ok(error_resp) => {
                             error!(
@@ -290,10 +291,10 @@ impl LlmClient for VllmLlmClient {
                             )))
                         }
                         Err(_) => {
-                            error!("vLLM API error: {}", resp.status());
+                            error!("vLLM API error: {}", status);
                             Err(LlmError::RequestFailed(format!(
                                 "vLLM API error: {}",
-                                resp.status()
+                                status
                             )))
                         }
                     }
@@ -448,6 +449,7 @@ impl LlmClient for VllmLlmClient {
                             error_type: String,
                         }
 
+                        let status = resp.status();
                         match resp.json::<VllmErrorResponse>().await {
                             Ok(error_resp) => {
                                 error!(
@@ -460,10 +462,10 @@ impl LlmClient for VllmLlmClient {
                                 )))
                             }
                             Err(_) => {
-                                error!("vLLM API error: {}", resp.status());
+                                error!("vLLM API error: {}", status);
                                 Err(LlmError::RequestFailed(format!(
                                     "vLLM API error: {}",
-                                    resp.status()
+                                    status
                                 )))
                             }
                         }
