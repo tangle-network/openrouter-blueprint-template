@@ -27,7 +27,7 @@ keywords = ["tangle", "blueprint", "avs"]
 [workspace.dependencies]
 open-router-blueprint-template-lib = { path = "open-router-blueprint-template-lib" }
 
-blueprint-sdk = { version = "0.1.0-alpha.11", default-features = false }
+blueprint-sdk = { version = "0.1.0-alpha.16", default-features = false }
 tokio = { version = "1", default-features = false }
 color-eyre = "0.6"
 tower = { version = "0.5", default-features = false }
